@@ -7,64 +7,40 @@
   <link rel="icon" href="favicon.ico" />
   <style>
     body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 20px;
-      transition: background 0.3s, color 0.3s;
+      font-family: sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background-color: white;
     }
-
-    #jeu {
-      border: 4px solid black;
-      padding: 20px;
-      width: 300px;
-      margin: 20px auto;
-    }
-
     body.dark {
       background-color: #111;
       color: white;
     }
-
-    body.dark #jeu {
-      border-color: red;
+    .container {
+      border: 4px solid black;
+      border-radius: 12px;
+      padding: 20px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      background: white;
     }
-
-    #auth input {
-      margin: 5px;
+    body.dark .container {
+      border-color: red;
+      background: #222;
+    }
+    input, button {
+      font-size: 16px;
+      margin: 10px;
     }
   </style>
-</head>
-<body>
-  <div id="auth">
-    <input type="email" id="email" placeholder="Email" />
-    <input type="password" id="password" placeholder="Mot de passe" />
-    <button id="signup">S'inscrire</button>
-    <button id="login">Se connecter</button>
-    <button id="logout" style="display:none;">Se déconnecter</button>
-    <p id="user-info"></p>
-  </div>
-
-  <div id="game" style="display:none;">
-    <h1>Multiplication</h1>
-    <label>Nombre de questions : <input type="number" id="nombre-questions" min="1" value="5"/></label><br>
-    <label><input type="checkbox" id="mode-grand-nombre" /> Mode Grand Nombre</label><br>
-    <label><input type="checkbox" id="mode-grand-defi" /> Mode Grand Défi</label><br>
-    <label><input type="checkbox" id="mode-sombre" /> Mode Sombre</label><br>
-    <button onclick="lancerPartie()">Lancer la partie</button>
-
-    <div id="jeu">
-      <p id="question"></p>
-      <input type="number" id="user-answer" placeholder="Réponse" />
-      <button id="btn-verifier" onclick="verifier()">Vérifier</button>
-      <p id="chrono"></p>
-      <p id="feedback"></p>
-      <p>Score : <span id="score">0</span></p>
-    </div>
-  </div>
-
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCwSUJwGsD5BNwuKr8DhhMVYdfMEiLi3Es",
@@ -77,133 +53,168 @@
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+    const db = getDatabase(app);
 
-    const email = document.getElementById('email');
-    const password = document.getElementById('password');
-    const login = document.getElementById('login');
-    const signup = document.getElementById('signup');
-    const logout = document.getElementById('logout');
-    const game = document.getElementById('game');
-    const authBox = document.getElementById('auth');
-    const userInfo = document.getElementById('user-info');
-
-    signup.onclick = () => {
-      createUserWithEmailAndPassword(auth, email.value, password.value)
-        .catch(e => alert(e.message));
-    };
-
-    login.onclick = () => {
-      signInWithEmailAndPassword(auth, email.value, password.value)
-        .catch(e => alert(e.message));
-    };
-
-    logout.onclick = () => signOut(auth);
-
-    onAuthStateChanged(auth, user => {
-      if (user) {
-        userInfo.innerText = `Connecté en tant que ${user.email}`;
-        game.style.display = "block";
-        authBox.style.display = "none";
-        logout.style.display = "inline";
-      } else {
-        game.style.display = "none";
-        authBox.style.display = "block";
-        logout.style.display = "none";
-        userInfo.innerText = "";
-      }
-    });
-
-    document.getElementById("mode-sombre").addEventListener("change", function () {
-      document.body.classList.toggle("dark", this.checked);
-    });
-
-    let nombre1, nombre2;
-    let score = 0;
-    let questionsJouees = 0;
-    let questionsMax = 5;
-    let tempsRestant = 10;
+    let user = null;
+    let nombre1, nombre2, score = 0, bonnes = 0, mauvaises = 0, questionsMax = 10, questionsJouees = 0;
+    let partieEnCours = false;
+    let modeGrandNombre = false;
+    let modeGrandDefi = false;
     let timer = null;
+    let tempsRestant = 0;
 
-    document.getElementById("user-answer").addEventListener("keypress", function(e) {
-      if (e.key === "Enter") verifier();
+    function updateUI() {
+      document.getElementById("login-section").style.display = user ? "none" : "block";
+      document.getElementById("app").style.display = user ? "block" : "none";
+      document.getElementById("username").innerText = user ? user.email : "";
+    }
+
+    onAuthStateChanged(auth, (u) => {
+      user = u;
+      updateUI();
     });
 
-    window.lancerPartie = function() {
-      score = 0;
-      questionsJouees = 0;
-      questionsMax = parseInt(document.getElementById('nombre-questions').value);
-      nouvelleQuestion();
+    document.getElementById("btn-register").onclick = () => {
+      const email = document.getElementById("email").value;
+      const pass = document.getElementById("password").value;
+      createUserWithEmailAndPassword(auth, email, pass);
     };
 
-    function nouvelleQuestion() {
-      if (questionsJouees >= questionsMax) return fin();
+    document.getElementById("btn-login").onclick = () => {
+      const email = document.getElementById("email").value;
+      const pass = document.getElementById("password").value;
+      signInWithEmailAndPassword(auth, email, pass);
+    };
 
-      const modeGrandNombre = document.getElementById('mode-grand-nombre').checked;
-      const modeGrandDefi = document.getElementById('mode-grand-defi').checked;
+    document.getElementById("btn-logout").onclick = () => signOut(auth);
 
-      questionsJouees++;
+    document.getElementById("mode-toggle").onclick = () => {
+      document.body.classList.toggle("dark");
+    };
+
+    document.getElementById("start-btn").onclick = () => {
+      questionsJouees = bonnes = mauvaises = score = 0;
+      questionsMax = parseInt(document.getElementById("nb-questions").value) || 10;
+      modeGrandNombre = document.getElementById("mode-grand-nombre").checked;
+      modeGrandDefi = document.getElementById("mode-grand-defi").checked;
+      partieEnCours = true;
+      nextQuestion();
+    };
+
+    function nextQuestion() {
+      if (questionsJouees >= questionsMax) return endGame();
+
       nombre1 = Math.floor(Math.random() * 10) + 1;
       nombre2 = modeGrandNombre ? Math.floor(Math.random() * 1000) + 1 : Math.floor(Math.random() * 10) + 1;
+      document.getElementById("question").innerText = `Combien font ${nombre1} × ${nombre2} ?`;
+      document.getElementById("answer").value = "";
+      document.getElementById("feedback").innerText = "";
+      questionsJouees++;
 
-      document.getElementById('question').innerText = `Question ${questionsJouees}/${questionsMax} : ${nombre1} × ${nombre2}`;
-      document.getElementById('user-answer').value = "";
-      document.getElementById('feedback').innerText = "";
-      document.getElementById('user-answer').disabled = false;
-      document.getElementById('btn-verifier').disabled = false;
-
-      if (timer) clearInterval(timer);
+      clearInterval(timer);
       if (modeGrandNombre && modeGrandDefi) tempsRestant = 30;
       else if (modeGrandDefi) tempsRestant = 10;
-      else if (modeGrandNombre) tempsRestant = 9999;
-      else tempsRestant = 10;
+      else tempsRestant = null;
 
-      afficherTimer();
-      if (tempsRestant !== 9999) {
+      if (tempsRestant !== null) {
+        document.getElementById("timer").innerText = `Temps : ${tempsRestant}s`;
         timer = setInterval(() => {
           tempsRestant--;
-          afficherTimer();
+          document.getElementById("timer").innerText = `Temps : ${tempsRestant}s`;
           if (tempsRestant <= 0) {
             clearInterval(timer);
-            echecTemps();
+            wrongAnswer(true);
           }
         }, 1000);
-      }
-    }
-
-    window.verifier = function() {
-      const reponse = parseInt(document.getElementById('user-answer').value);
-      const bonneReponse = nombre1 * nombre2;
-
-      if (reponse === bonneReponse) {
-        document.getElementById('feedback').innerText = "✅ Bonne réponse !";
-        score++;
       } else {
-        document.getElementById('feedback').innerText = `❌ Faux, c'était ${bonneReponse}`;
+        document.getElementById("timer").innerText = "";
       }
-
-      document.getElementById('score').innerText = score;
-      document.getElementById('btn-verifier').disabled = true;
-      document.getElementById('user-answer').disabled = true;
-
-      setTimeout(() => nouvelleQuestion(), 2000);
     }
 
-    function echecTemps() {
-      document.getElementById('feedback').innerText = `⏰ Temps écoulé ! C'était ${nombre1 * nombre2}`;
-      document.getElementById('btn-verifier').disabled = true;
-      document.getElementById('user-answer').disabled = true;
-
-      setTimeout(() => nouvelleQuestion(), 2000);
+    function wrongAnswer(timeout = false) {
+      mauvaises++;
+      document.getElementById("feedback").innerText = timeout ? `⏰ Temps écoulé. C'était ${nombre1 * nombre2}` : `❌ Mauvaise réponse. C'était ${nombre1 * nombre2}`;
+      setTimeout(nextQuestion, 2000);
     }
 
-    function afficherTimer() {
-      document.getElementById('chrono').innerText = `⏳ Temps restant : ${tempsRestant}s`;
+    function endGame() {
+      partieEnCours = false;
+      clearInterval(timer);
+      const total = bonnes + mauvaises;
+      const scorePourcent = total > 0 ? Math.round((bonnes / total) * 100) : 0;
+      document.getElementById("feedback").innerText = `🎉 Fin ! Score : ${bonnes}/${total} (${scorePourcent}%)`;
+      if (user) {
+        push(ref(db, "scores/"), {
+          email: user.email,
+          bonnes,
+          total,
+          date: new Date().toISOString()
+        });
+      }
     }
 
-    function fin() {
-      document.getElementById('question').innerText = `🎉 Fin de la partie ! Score final : ${score}/${questionsMax}`;
-      document.getElementById('chrono').innerText = "";
+    document.getElementById("answer").addEventListener("keydown", e => {
+      if (e.key === "Enter") checkAnswer();
+    });
+
+    document.getElementById("check-btn").onclick = checkAnswer;
+
+    function checkAnswer() {
+      if (!partieEnCours) return;
+      const val = parseInt(document.getElementById("answer").value);
+      const correct = nombre1 * nombre2;
+      clearInterval(timer);
+      if (val === correct) {
+        bonnes++;
+        document.getElementById("feedback").innerText = "✅ Correct !";
+        setTimeout(nextQuestion, 1000);
+      } else {
+        wrongAnswer();
+      }
     }
+
+    onValue(ref(db, "scores/"), snapshot => {
+      const list = document.getElementById("scores");
+      list.innerHTML = "";
+      snapshot.forEach(child => {
+        const val = child.val();
+        const li = document.createElement("li");
+        li.textContent = `${val.email} : ${val.bonnes}/${val.total}`;
+        list.appendChild(li);
+      });
+    });
   </script>
+</head>
+<body>
+  <div class="container">
+    <div id="login-section">
+      <h2>Connexion</h2>
+      <input id="email" placeholder="Email" type="email" />
+      <input id="password" placeholder="Mot de passe" type="password" />
+      <button id="btn-register">Créer un compte</button>
+      <button id="btn-login">Connexion</button>
+    </div>
+
+    <div id="app" style="display:none">
+      <p>Connecté en tant que : <span id="username"></span></p>
+      <button id="btn-logout">Déconnexion</button>
+      <button id="mode-toggle">🌙/☀️</button>
+      <br><br>
+
+      <label><input type="checkbox" id="mode-grand-defi"> Mode Grand Défi</label><br>
+      <label><input type="checkbox" id="mode-grand-nombre"> Mode Grand Nombre</label><br>
+      <input type="number" id="nb-questions" placeholder="Nombre de questions" />
+      <button id="start-btn">Démarrer</button>
+
+      <h3 id="question"></h3>
+      <input id="answer" placeholder="Votre réponse" />
+      <button id="check-btn">Valider</button>
+      <div id="timer"></div>
+      <div id="feedback"></div>
+
+      <h3>Scores des joueurs</h3>
+      <ul id="scores"></ul>
+    </div>
+  </div>
 </body>
 </html>
