@@ -4,78 +4,67 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Jeu de Multiplication</title>
-  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="icon" href="favicon.ico" />
   <style>
     body {
-      font-family: sans-serif;
-      background-color: #fff;
-      color: #000;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      transition: background-color 0.3s, color 0.3s;
-    }
-
-    .dark {
-      background-color: #111;
-      color: #fff;
-    }
-
-    .container {
-      border: 4px solid #000;
-      padding: 20px;
-      border-radius: 10px;
+      font-family: Arial, sans-serif;
       text-align: center;
-      max-width: 500px;
-      width: 100%;
+      padding: 20px;
+      transition: background 0.3s, color 0.3s;
     }
 
-    .dark .container {
+    #jeu {
+      border: 4px solid black;
+      padding: 20px;
+      width: 300px;
+      margin: 20px auto;
+    }
+
+    body.dark {
+      background-color: #111;
+      color: white;
+    }
+
+    body.dark #jeu {
       border-color: red;
     }
 
-    input, button, select {
-      font-size: 16px;
-      padding: 5px;
+    #auth input {
       margin: 5px;
     }
-
-    #question {
-      font-size: 24px;
-      margin: 15px 0;
-    }
-
-    #feedback {
-      margin: 10px 0;
-      font-weight: bold;
-    }
-
-    #chrono {
-      font-size: 18px;
-      margin: 10px 0;
-    }
-
-    #auth-section {
-      margin-bottom: 20px;
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    .btn {
-      cursor: pointer;
-    }
   </style>
+</head>
+<body>
+  <div id="auth">
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Mot de passe" />
+    <button id="signup">S'inscrire</button>
+    <button id="login">Se connecter</button>
+    <button id="logout" style="display:none;">Se déconnecter</button>
+    <p id="user-info"></p>
+  </div>
 
-  <!-- Firebase -->
+  <div id="game" style="display:none;">
+    <h1>Multiplication</h1>
+    <label>Nombre de questions : <input type="number" id="nombre-questions" min="1" value="5"/></label><br>
+    <label><input type="checkbox" id="mode-grand-nombre" /> Mode Grand Nombre</label><br>
+    <label><input type="checkbox" id="mode-grand-defi" /> Mode Grand Défi</label><br>
+    <label><input type="checkbox" id="mode-sombre" /> Mode Sombre</label><br>
+    <button onclick="lancerPartie()">Lancer la partie</button>
+
+    <div id="jeu">
+      <p id="question"></p>
+      <input type="number" id="user-answer" placeholder="Réponse" />
+      <button id="btn-verifier" onclick="verifier()">Vérifier</button>
+      <p id="chrono"></p>
+      <p id="feedback"></p>
+      <p>Score : <span id="score">0</span></p>
+    </div>
+  </div>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCwSUJwGsD5BNwuKr8DhhMVYdfMEiLi3Es",
@@ -87,181 +76,133 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    const auth = getAuth();
+    const auth = getAuth(app);
 
-    window.auth = auth;
-    window.GoogleAuthProvider = GoogleAuthProvider;
-    window.signInWithPopup = signInWithPopup;
-    window.signInWithEmailAndPassword = signInWithEmailAndPassword;
-    window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
-    window.signOut = signOut;
-    window.onAuthStateChanged = onAuthStateChanged;
-  </script>
-</head>
-<body>
-  <div class="container">
-    <div id="auth-section">
-      <div id="user-info" class="hidden"></div>
-      <button onclick="loginWithGoogle()">Connexion Google</button>
-      <button onclick="logout()">Déconnexion</button>
-    </div>
+    const email = document.getElementById('email');
+    const password = document.getElementById('password');
+    const login = document.getElementById('login');
+    const signup = document.getElementById('signup');
+    const logout = document.getElementById('logout');
+    const game = document.getElementById('game');
+    const authBox = document.getElementById('auth');
+    const userInfo = document.getElementById('user-info');
 
-    <button onclick="toggleMode()">🎨 Mode Sombre/Clair</button>
-    <br><br>
+    signup.onclick = () => {
+      createUserWithEmailAndPassword(auth, email.value, password.value)
+        .catch(e => alert(e.message));
+    };
 
-    <label>Nombre de questions :
-      <input type="number" id="nombre-questions" value="5" min="1">
-    </label>
-    <br>
-    <label><input type="checkbox" id="mode-grand-nombre"> Grand Nombre</label>
-    <label><input type="checkbox" id="mode-grand-defi"> Grand Défi</label>
-    <br><br>
-    <button onclick="lancerPartie()">Démarrer la Partie</button>
-    <div id="chrono"></div>
-    <div id="question"></div>
-    <input type="number" id="user-answer" disabled>
-    <button id="btn-verifier" onclick="verifier()" disabled>Vérifier</button>
-    <div id="feedback"></div>
-    <div id="resume" class="hidden">
-      ✅ Bonnes réponses : <span id="bonnes">0</span><br>
-      ❌ Mauvaises réponses : <span id="mauvaises">0</span><br>
-      🏆 Score total : <span id="score">0</span>
-    </div>
-  </div>
+    login.onclick = () => {
+      signInWithEmailAndPassword(auth, email.value, password.value)
+        .catch(e => alert(e.message));
+    };
 
-  <script>
+    logout.onclick = () => signOut(auth);
+
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        userInfo.innerText = `Connecté en tant que ${user.email}`;
+        game.style.display = "block";
+        authBox.style.display = "none";
+        logout.style.display = "inline";
+      } else {
+        game.style.display = "none";
+        authBox.style.display = "block";
+        logout.style.display = "none";
+        userInfo.innerText = "";
+      }
+    });
+
+    document.getElementById("mode-sombre").addEventListener("change", function () {
+      document.body.classList.toggle("dark", this.checked);
+    });
+
     let nombre1, nombre2;
-    let score = 0, bonnes = 0, mauvaises = 0, questionsJouees = 0;
-    let questionsMax = 10;
-    let partieEnCours = false;
+    let score = 0;
+    let questionsJouees = 0;
+    let questionsMax = 5;
+    let tempsRestant = 10;
     let timer = null;
-    let tempsRestant = 0;
 
-    const inputAnswer = document.getElementById("user-answer");
-    inputAnswer.addEventListener("keyup", e => {
+    document.getElementById("user-answer").addEventListener("keypress", function(e) {
       if (e.key === "Enter") verifier();
     });
 
-    function toggleMode() {
-      document.body.classList.toggle("dark");
-    }
-
-    function lancerPartie() {
-      score = bonnes = mauvaises = questionsJouees = 0;
-      questionsMax = parseInt(document.getElementById("nombre-questions").value) || 10;
-      partieEnCours = true;
-      document.getElementById("resume").classList.add("hidden");
-      document.getElementById("feedback").innerText = "";
-      inputAnswer.disabled = false;
-      document.getElementById("btn-verifier").disabled = false;
+    window.lancerPartie = function() {
+      score = 0;
+      questionsJouees = 0;
+      questionsMax = parseInt(document.getElementById('nombre-questions').value);
       nouvelleQuestion();
-    }
+    };
 
     function nouvelleQuestion() {
-      if (!partieEnCours || questionsJouees >= questionsMax) return finDuJeu();
+      if (questionsJouees >= questionsMax) return fin();
 
-      const grandNombre = document.getElementById("mode-grand-nombre").checked;
-      const grandDefi = document.getElementById("mode-grand-defi").checked;
+      const modeGrandNombre = document.getElementById('mode-grand-nombre').checked;
+      const modeGrandDefi = document.getElementById('mode-grand-defi').checked;
 
       questionsJouees++;
       nombre1 = Math.floor(Math.random() * 10) + 1;
-      nombre2 = grandNombre ? Math.floor(Math.random() * 1000) + 1 : Math.floor(Math.random() * 10) + 1;
+      nombre2 = modeGrandNombre ? Math.floor(Math.random() * 1000) + 1 : Math.floor(Math.random() * 10) + 1;
 
-      document.getElementById("question").innerText = `Question ${questionsJouees}/${questionsMax} : ${nombre1} × ${nombre2} = ?`;
-      inputAnswer.value = "";
-      inputAnswer.disabled = false;
-      inputAnswer.focus();
-      document.getElementById("btn-verifier").disabled = false;
+      document.getElementById('question').innerText = `Question ${questionsJouees}/${questionsMax} : ${nombre1} × ${nombre2}`;
+      document.getElementById('user-answer').value = "";
+      document.getElementById('feedback').innerText = "";
+      document.getElementById('user-answer').disabled = false;
+      document.getElementById('btn-verifier').disabled = false;
 
-      // Temps selon le mode
-      clearInterval(timer);
-      if (grandNombre && grandDefi) tempsRestant = 30;
-      else if (grandDefi) tempsRestant = 10;
-      else if (grandNombre) tempsRestant = Infinity;
+      if (timer) clearInterval(timer);
+      if (modeGrandNombre && modeGrandDefi) tempsRestant = 30;
+      else if (modeGrandDefi) tempsRestant = 10;
+      else if (modeGrandNombre) tempsRestant = 9999;
       else tempsRestant = 10;
 
-      if (tempsRestant !== Infinity) {
-        afficherTimer();
+      afficherTimer();
+      if (tempsRestant !== 9999) {
         timer = setInterval(() => {
           tempsRestant--;
           afficherTimer();
           if (tempsRestant <= 0) {
             clearInterval(timer);
-            feedback("⏰ Temps écoulé. Réponse : " + (nombre1 * nombre2), false);
-            setTimeout(nouvelleQuestion, 3000);
+            echecTemps();
           }
         }, 1000);
-      } else {
-        document.getElementById("chrono").innerText = "∞ Temps illimité";
       }
+    }
+
+    window.verifier = function() {
+      const reponse = parseInt(document.getElementById('user-answer').value);
+      const bonneReponse = nombre1 * nombre2;
+
+      if (reponse === bonneReponse) {
+        document.getElementById('feedback').innerText = "✅ Bonne réponse !";
+        score++;
+      } else {
+        document.getElementById('feedback').innerText = `❌ Faux, c'était ${bonneReponse}`;
+      }
+
+      document.getElementById('score').innerText = score;
+      document.getElementById('btn-verifier').disabled = true;
+      document.getElementById('user-answer').disabled = true;
+
+      setTimeout(() => nouvelleQuestion(), 2000);
+    }
+
+    function echecTemps() {
+      document.getElementById('feedback').innerText = `⏰ Temps écoulé ! C'était ${nombre1 * nombre2}`;
+      document.getElementById('btn-verifier').disabled = true;
+      document.getElementById('user-answer').disabled = true;
+
+      setTimeout(() => nouvelleQuestion(), 2000);
     }
 
     function afficherTimer() {
-      document.getElementById("chrono").innerText = `⏳ Temps restant : ${tempsRestant}s`;
+      document.getElementById('chrono').innerText = `⏳ Temps restant : ${tempsRestant}s`;
     }
 
-    function verifier() {
-      if (!partieEnCours) return;
-      clearInterval(timer);
-
-      const reponse = parseInt(inputAnswer.value);
-      const bonneReponse = nombre1 * nombre2;
-      if (isNaN(reponse)) {
-        feedback("⛔ Entrez un nombre.", false);
-        return;
-      }
-
-      const estBonne = reponse === bonneReponse;
-      feedback(estBonne ? "✅ Bonne réponse !" : `❌ Faux ! Réponse : ${bonneReponse}`, estBonne);
-      setTimeout(nouvelleQuestion, 3000);
-    }
-
-    function feedback(message, bonne) {
-      if (bonne) {
-        score++; bonnes++;
-      } else {
-        mauvaises++;
-      }
-      document.getElementById("feedback").innerText = message;
-      inputAnswer.disabled = true;
-      document.getElementById("btn-verifier").disabled = true;
-      updateScore();
-    }
-
-    function finDuJeu() {
-      partieEnCours = false;
-      clearInterval(timer);
-      inputAnswer.disabled = true;
-      document.getElementById("btn-verifier").disabled = true;
-      document.getElementById("chrono").innerText = "";
-      document.getElementById("resume").classList.remove("hidden");
-    }
-
-    function updateScore() {
-      document.getElementById("score").innerText = score;
-      document.getElementById("bonnes").innerText = bonnes;
-      document.getElementById("mauvaises").innerText = mauvaises;
-    }
-
-    // --- Auth Firebase ---
-    onAuthStateChanged(auth, user => {
-      const userInfo = document.getElementById("user-info");
-      if (user) {
-        userInfo.innerText = `Connecté : ${user.displayName || user.email}`;
-        userInfo.classList.remove("hidden");
-      } else {
-        userInfo.innerText = "";
-        userInfo.classList.add("hidden");
-      }
-    });
-
-    function loginWithGoogle() {
-      const provider = new GoogleAuthProvider();
-      signInWithPopup(auth, provider).catch(alert);
-    }
-
-    function logout() {
-      signOut(auth).catch(alert);
+    function fin() {
+      document.getElementById('question').innerText = `🎉 Fin de la partie ! Score final : ${score}/${questionsMax}`;
+      document.getElementById('chrono').innerText = "";
     }
   </script>
 </body>
