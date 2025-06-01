@@ -1,1 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Multijoueur - Jeu Multiplication</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex; justify-content: center; align-items: center;
+      height: 100vh;
+      background: #f4f4f4;
+      margin: 0;
+    }
+    #container {
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      width: 350px;
+      text-align: center;
+    }
+    input, button {
+      width: 100%;
+      padding: 0.5rem;
+      margin: 0.5rem 0;
+      font-size: 1rem;
+    }
+    button {
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <h2>Multijoueur</h2>
+    <button id="btn-create">Créer une partie</button>
+    <input type="text" id="room-id" placeholder="ID de la partie à rejoindre" />
+    <button id="btn-join">Rejoindre une partie</button>
+  </div>
 
+  <script>
+    document.getElementById('btn-create').addEventListener('click', () => {
+      alert('Fonction "Créer une partie" à implémenter');
+      // Ici tu peux lancer ta logique de création de partie
+    });
+
+    document.getElementById('btn-join').addEventListener('click', () => {
+      const roomId = document.getElementById('room-id').value.trim();
+      if(!roomId) {
+        alert("Veuillez saisir un ID de partie.");
+        return;
+      }
+      alert('Fonction "Rejoindre une partie" à implémenter pour la room : ' + roomId);
+      // Ici tu peux lancer ta logique pour rejoindre la partie
+    });
+  </script>
+</body>
+</html>
