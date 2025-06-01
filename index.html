@@ -1,22 +1,18 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Jeu de Multiplication</title>
-  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
   <style>
     body {
       font-family: Arial, sans-serif;
+      text-align: center;
       background-color: white;
       color: black;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      min-height: 100vh;
       margin: 0;
-      padding: 1rem;
+      padding: 20px;
       transition: background-color 0.3s, color 0.3s;
     }
 
@@ -27,69 +23,81 @@
 
     .jeu-container {
       border: 4px solid black;
-      padding: 2rem;
-      margin-top: 2rem;
-      border-radius: 12px;
+      border-radius: 10px;
+      padding: 20px;
       max-width: 400px;
-      width: 100%;
-      transition: border-color 0.3s;
+      margin: auto;
+      background-color: #f9f9f9;
     }
 
     body.dark .jeu-container {
       border-color: red;
-    }
-
-    h1 {
-      margin: 0.5rem 0;
-    }
-
-    button {
-      margin: 0.5rem;
-      padding: 0.5rem 1rem;
-      font-size: 1rem;
+      background-color: #1e1e1e;
     }
 
     input[type="number"] {
-      width: 60px;
-      padding: 0.3rem;
-      font-size: 1rem;
+      width: 80px;
+      padding: 5px;
+      font-size: 16px;
+    }
+
+    button {
+      padding: 10px 15px;
+      font-size: 16px;
+      margin: 5px;
+      cursor: pointer;
+    }
+
+    #feedback {
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    #chrono {
+      margin-top: 10px;
+      font-size: 18px;
+    }
+
+    .toggle {
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
-  <img src="favicon.png" alt="Logo" width="48" height="48">
-  <h1>Jeu de Multiplication</h1>
-
-  <div>
-    <button onclick="toggleMode()">🌙/☀️ Mode</button>
-    <label><input type="checkbox" id="mode-grand-nombre"> Grand Nombre</label>
-    <label><input type="checkbox" id="mode-grand-defi"> Grand Défi</label>
-    <label>Questions : <input type="number" id="nombre-questions" value="10"></label>
-    <button onclick="lancerPartie()">Démarrer</button>
-  </div>
+  <h1>❌ Jeu de Multiplication</h1>
 
   <div class="jeu-container">
-    <div id="question">Cliquez sur Démarrer pour jouer !</div>
-    <input type="number" id="user-answer" disabled>
-    <button id="btn-verifier" onclick="verifier()" disabled>Vérifier</button>
-    <div id="chrono"></div>
+    <div>
+      <label>Nombre de questions : <input type="number" id="nombre-questions" value="10" min="1" /></label>
+    </div>
+    <div>
+      <label><input type="checkbox" id="mode-grand-nombre" /> Mode Grand Nombre</label><br/>
+      <label><input type="checkbox" id="mode-grand-defi" /> Mode Grand Défi</label>
+    </div>
+    <div class="toggle">
+      <button onclick="toggleMode()">🌗 Mode Clair/Sombre</button>
+      <button onclick="lancerPartie()">🎮 Lancer la Partie</button>
+    </div>
+
+    <div id="question" style="margin-top: 20px; font-size: 20px;"></div>
+    <input type="number" id="user-answer" onkeydown="if(event.key === 'Enter') verifier()" />
+    <button id="btn-verifier" onclick="verifier()">Vérifier</button>
     <div id="feedback"></div>
-    <div>Score : <span id="score">0</span></div>
-    <div>Bonnes réponses : <span id="bonnes">0</span> | Mauvaises réponses : <span id="mauvaises">0</span></div>
+    <div id="chrono"></div>
+
+    <div style="margin-top: 15px;">
+      ✅ Bonnes réponses : <span id="bonnes">0</span><br/>
+      ❌ Mauvaises réponses : <span id="mauvaises">0</span><br/>
+      🎯 Score : <span id="score">0</span>
+    </div>
   </div>
 
   <script>
     let nombre1, nombre2;
-    let score = 0;
-    let bonnes = 0;
-    let mauvaises = 0;
+    let score = 0, bonnes = 0, mauvaises = 0, questionsJouees = 0, questionsMax = 10;
     let partieEnCours = false;
-    let questionsMax = 10;
-    let questionsJouees = 0;
-    let modeGrandNombre = false;
-    let modeGrandDefi = false;
-
-    let tempsRestant = 10;
+    let modeGrandNombre = false, modeGrandDefi = false;
+    let tempsRestant = 0;
     let timerQuestionInterval = null;
 
     function toggleMode() {
@@ -97,90 +105,78 @@
     }
 
     function lancerPartie() {
-      score = 0;
-      bonnes = 0;
-      mauvaises = 0;
-      questionsJouees = 0;
-
-      updateAffichageScore();
-      document.getElementById('feedback').innerText = "";
+      score = 0; bonnes = 0; mauvaises = 0; questionsJouees = 0;
+      questionsMax = parseInt(document.getElementById('nombre-questions').value);
+      if (isNaN(questionsMax) || questionsMax < 1) questionsMax = 10;
 
       modeGrandNombre = document.getElementById('mode-grand-nombre').checked;
       modeGrandDefi = document.getElementById('mode-grand-defi').checked;
 
-      questionsMax = parseInt(document.getElementById('nombre-questions').value);
-      if (isNaN(questionsMax) || questionsMax < 1) questionsMax = 10;
-
       partieEnCours = true;
-      document.getElementById('user-answer').disabled = false;
       document.getElementById('btn-verifier').disabled = false;
-
+      document.getElementById('user-answer').disabled = false;
+      document.getElementById('feedback').innerText = "";
       nouvelleQuestion();
     }
 
     function nouvelleQuestion() {
-      if (!partieEnCours || questionsJouees >= questionsMax) {
-        finDuJeu();
-        return;
-      }
-
+      if (!partieEnCours || questionsJouees >= questionsMax) return finDuJeu();
       questionsJouees++;
-      nombre1 = Math.floor(Math.random() * 10) + 1;
-      nombre2 = modeGrandNombre ? Math.floor(Math.random() * 1000) + 1 : Math.floor(Math.random() * 10) + 1;
 
-      document.getElementById('question').innerText = `Question ${questionsJouees}/${questionsMax} : ${nombre1} x ${nombre2} ?`;
+      nombre1 = Math.floor(Math.random() * 10) + 1;
+      nombre2 = modeGrandNombre
+        ? Math.floor(Math.random() * 1000) + 1
+        : Math.floor(Math.random() * 10) + 1;
+
+      document.getElementById('question').innerText = `Question ${questionsJouees} / ${questionsMax} : Combien font ${nombre1} × ${nombre2} ?`;
       document.getElementById('user-answer').value = "";
+      document.getElementById('feedback').innerText = "";
       document.getElementById('user-answer').disabled = false;
       document.getElementById('btn-verifier').disabled = false;
-      document.getElementById('feedback').innerText = "";
       document.getElementById('user-answer').focus();
 
-      if (modeGrandDefi) {
-        tempsRestant = modeGrandNombre ? 30 : 10;
+      clearInterval(timerQuestionInterval);
+      if (modeGrandDefi || modeGrandNombre) {
+        if (modeGrandDefi && modeGrandNombre) {
+          tempsRestant = 30;
+        } else if (modeGrandDefi) {
+          tempsRestant = 10;
+        } else {
+          document.getElementById('chrono').innerText = "⏳ Temps illimité";
+          return;
+        }
+
         afficherTimer();
-        if (timerQuestionInterval) clearInterval(timerQuestionInterval);
         timerQuestionInterval = setInterval(() => {
           tempsRestant--;
           afficherTimer();
-
           if (tempsRestant <= 0) {
             clearInterval(timerQuestionInterval);
             tempsEcoule();
           }
         }, 1000);
-      } else if (modeGrandNombre) {
-        tempsRestant = 0;
-        afficherTimer();
       } else {
-        document.getElementById('chrono').innerText = "";
+        document.getElementById('chrono').innerText = "⏳ Temps illimité";
       }
     }
 
     function afficherTimer() {
-      if (modeGrandDefi || modeGrandNombre) {
-        document.getElementById('chrono').innerText = `⏳ Temps restant : ${tempsRestant} sec`;
-      } else {
-        document.getElementById('chrono').innerText = "";
-      }
+      document.getElementById('chrono').innerText = `⏳ Temps restant : ${tempsRestant} sec`;
     }
 
     function tempsEcoule() {
-      document.getElementById('btn-verifier').disabled = true;
       document.getElementById('user-answer').disabled = true;
+      document.getElementById('btn-verifier').disabled = true;
       mauvaises++;
-      updateAffichageScore();
       const bonneReponse = nombre1 * nombre2;
       document.getElementById('feedback').innerText = `⏰ Temps écoulé ! La réponse était ${bonneReponse}.`;
-
-      setTimeout(() => {
-        if (questionsJouees >= questionsMax) finDuJeu();
-        else nouvelleQuestion();
-      }, 5000);
+      updateScore();
+      setTimeout(nouvelleQuestion, 3000);
     }
 
     function verifier() {
       if (!partieEnCours) return;
-      if (modeGrandDefi) clearInterval(timerQuestionInterval);
+      clearInterval(timerQuestionInterval);
 
       const reponse = parseInt(document.getElementById('user-answer').value);
       const bonneReponse = nombre1 * nombre2;
@@ -191,25 +187,21 @@
       }
 
       if (reponse === bonneReponse) {
-        score++;
-        bonnes++;
+        score++; bonnes++;
         document.getElementById('feedback').innerText = "✅ Bonne réponse !";
       } else {
         mauvaises++;
         document.getElementById('feedback').innerText = `❌ Mauvaise réponse. C'était ${bonneReponse}.`;
       }
 
-      updateAffichageScore();
-      document.getElementById('btn-verifier').disabled = true;
+      updateScore();
       document.getElementById('user-answer').disabled = true;
+      document.getElementById('btn-verifier').disabled = true;
 
-      setTimeout(() => {
-        if (questionsJouees >= questionsMax) finDuJeu();
-        else nouvelleQuestion();
-      }, 5000);
+      setTimeout(nouvelleQuestion, 3000);
     }
 
-    function updateAffichageScore() {
+    function updateScore() {
       document.getElementById('score').innerText = score;
       document.getElementById('bonnes').innerText = bonnes;
       document.getElementById('mauvaises').innerText = mauvaises;
@@ -218,10 +210,8 @@
     function finDuJeu() {
       partieEnCours = false;
       clearInterval(timerQuestionInterval);
-      document.getElementById('user-answer').disabled = true;
-      document.getElementById('btn-verifier').disabled = true;
+      document.getElementById('question').innerText = "🎉 Partie terminée !";
       document.getElementById('chrono').innerText = "";
-      document.getElementById('feedback').innerText = `✅ Partie terminée ! Score final : ${score}/${questionsMax}`;
     }
   </script>
 </body>
