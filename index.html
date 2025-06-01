@@ -1,69 +1,289 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Jeu de Multiplication Avancé</title>
+  <style>
+    :root {
+      --bg-color: #f9f9f9;
+      --text-color: #000;
+      --box-color: #fff;
+    }
+    body.dark {
+      --bg-color: #121212;
+      --text-color: #f9f9f9;
+      --box-color: #1e1e1e;
+    }
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 40px;
+      transition: background 0.3s, color 0.3s;
+    }
+    .container {
+      background: var(--box-color);
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      max-width: 700px;
+      margin: auto;
+      transition: background 0.3s;
+    }
+    input, button, select {
+      padding: 10px;
+      font-size: 16px;
+      margin: 10px 5px;
+      border-radius: 5px;
+    }
+    input[type=number] {
+      width: 80px;
+    }
+    button {
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+    }
+    button:disabled {
+      background-color: #999;
+      cursor: not-allowed;
+    }
+    .result {
+      font-size: 18px;
+      margin-top: 15px;
+    }
+    .mode-btn {
+      background-color: #555;
+      margin-top: 20px;
+    }
+    .score {
+      font-size: 16px;
+      margin-top: 10px;
+    }
+    #gif-felicitation {
+      margin-top: 20px;
+      max-width: 250px;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎯 Jeu de Multiplication Avancé</h1>
 
+    <button class="mode-btn" onclick="toggleMode()">🌗 Mode clair / sombre</button>
 
+    <div style="margin-top: 15px;">
+      <label>
+        <input type="checkbox" id="defi-mode" /> Activer mode défi (30 sec)
+      </label><br/>
+      <label>
+        <input type="checkbox" id="mode-grand-nombre" /> Mode grand nombre (1-10 × 1-1000)
+      </label><br/>
+      <label>
+        Nombre de questions : 
+        <input type="number" id="nombre-questions" min="1" max="100" value="10" />
+      </label>
+    </div>
 
+    <button onclick="lancerPartie()">🎮 Lancer une partie</button>
 
+    <p id="question" style="font-size: 20px; margin: 20px 0;"></p>
 
-     
-function verifier() {
-  if (!partieEnCours) return;
+    <input type="number" id="user-answer" placeholder="Votre réponse" disabled autocomplete="off" />
 
-  const reponse = parseInt(document.getElementById('user-answer').value);
-  const bonneReponse = nombre1 * nombre2;
-  const feedback = document.getElementById('feedback');
+    <br/>
 
-  if (isNaN(reponse)) {
-    feedback.innerText = "⛔ Entrez un nombre.";
-    return;
-  }
+    <button onclick="verifier()" id="btn-verifier" disabled>Vérifier</button>
 
-  if (reponse === bonneReponse) {
-    feedback.innerText = "✅ Bonne réponse !";
-    score++;
-    bonnes++;
-  } else {
-    feedback.innerText = `❌ Mauvaise réponse. C'était ${bonneReponse}.`;
-    mauvaises++;
-  }
+    <div class="score">
+      🏆 Score : <span id="score">0</span> |
+      ✅ Bonnes : <span id="bonnes">0</span> |
+      ❌ Erreurs : <span id="mauvaises">0</span>
+    </div>
 
-  updateAffichageScore();
+    <div id="chrono" style="font-size: 20px; margin-top: 10px;"></div>
+    <div class="result" id="feedback"></div>
 
-  // Désactive bouton vérifier pour éviter double clic
-  document.getElementById('btn-verifier').disabled = true;
-  document.getElementById('user-answer').disabled = true;
+    <div id="resume" style="margin-top: 30px; font-size: 18px; display:none;"></div>
+    <img id="gif-felicitation" src="" alt="" style="display:none;" />
+  </div>
 
-  // Après 5 secondes, on passe à la prochaine question
-  setTimeout(() => {
-    if (questionsJouees >= questionsMax) {
-      finDuJeu();
-    } else {
-      nouvelleQuestion();
-      document.getElementById('btn-verifier').disabled = false;
+  <script>
+    let nombre1, nombre2;
+    let score = 0;
+    let bonnes = 0;
+    let mauvaises = 0;
+    let partieEnCours = false;
+    let chrono = 30;
+    let timerInterval = null;
+    let defiActif = false;
+    let questionsMax = 10;
+    let questionsJouees = 0;
+    let modeGrandNombre = false;
+
+    function toggleMode() {
+      document.body.classList.toggle('dark');
+    }
+
+    function lancerPartie() {
+      // Reset stats
+      score = 0;
+      bonnes = 0;
+      mauvaises = 0;
+      questionsJouees = 0;
+      updateAffichageScore();
+      document.getElementById('feedback').innerText = "";
+      document.getElementById('resume').style.display = "none";
+      document.getElementById('gif-felicitation').style.display = "none";
+      document.getElementById('gif-felicitation').src = "";
+
+      // Paramètres
+      defiActif = document.getElementById('defi-mode').checked;
+      modeGrandNombre = document.getElementById('mode-grand-nombre').checked;
+      questionsMax = parseInt(document.getElementById('nombre-questions').value);
+      if (isNaN(questionsMax) || questionsMax < 1) questionsMax = 10;
+
+      partieEnCours = true;
       document.getElementById('user-answer').disabled = false;
+      document.getElementById('btn-verifier').disabled = false;
+
+      questionsJouees = 0;
+      nouvelleQuestion();
+
+      if (defiActif) {
+        chrono = 30;
+        startChrono();
+      } else {
+        document.getElementById('chrono').innerText = "";
+        stopChrono();
+      }
+    }
+
+    function nouvelleQuestion() {
+      if (!partieEnCours) return;
+
+      if (questionsJouees >= questionsMax) {
+        finDuJeu();
+        return;
+      }
+      
+      questionsJouees++;
+
+      if (modeGrandNombre) {
+        nombre1 = Math.floor(Math.random() * 10) + 1;
+        nombre2 = Math.floor(Math.random() * 1000) + 1;
+      } else {
+        nombre1 = Math.floor(Math.random() * 10) + 1;
+        nombre2 = Math.floor(Math.random() * 10) + 1;
+      }
+
+      document.getElementById('question').innerText = `Question ${questionsJouees} / ${questionsMax} : Combien font ${nombre1} × ${nombre2} ?`;
+      document.getElementById('user-answer').value = "";
+      document.getElementById('feedback').innerText = "";
+
+      // Active input et bouton verifier
+      document.getElementById('user-answer').disabled = false;
+      document.getElementById('btn-verifier').disabled = false;
+
       document.getElementById('user-answer').focus();
     }
-  }, 5000);
-}
 
-function nouvelleQuestion() {
-  if (!partieEnCours) return;
+    function verifier() {
+      if (!partieEnCours) return;
 
-  if (questionsJouees >= questionsMax) {
-    finDuJeu();
-    return;
-  }
-  
-  questionsJouees++;
+      const reponse = parseInt(document.getElementById('user-answer').value);
+      const bonneReponse = nombre1 * nombre2;
+      const feedback = document.getElementById('feedback');
 
-  if (modeGrandNombre) {
-    nombre1 = Math.floor(Math.random() * 10) + 1;
-    nombre2 = Math.floor(Math.random() * 1000) + 1;
-  } else {
-    nombre1 = Math.floor(Math.random() * 10) + 1;
-    nombre2 = Math.floor(Math.random() * 10) + 1;
-  }
+      if (isNaN(reponse)) {
+        feedback.innerText = "⛔ Entrez un nombre.";
+        return;
+      }
 
-  document.getElementById('question').innerText = `Question ${questionsJouees} / ${questionsMax} : Combien font ${nombre1} × ${nombre2} ?`;
-  document.getElementById('user-answer').value = "";
-  document.getElementById('feedback').innerText = "";
-}
+      if (reponse === bonneReponse) {
+        feedback.innerText = "✅ Bonne réponse !";
+        score++;
+        bonnes++;
+      } else {
+        feedback.innerText = `❌ Mauvaise réponse. C'était ${bonneReponse}.`;
+        mauvaises++;
+      }
 
+      updateAffichageScore();
+
+      // Désactive bouton vérifier et input pour éviter double clic
+      document.getElementById('btn-verifier').disabled = true;
+      document.getElementById('user-answer').disabled = true;
+
+      // Après 5 secondes, on passe à la prochaine question ou fin du jeu
+      setTimeout(() => {
+        if (questionsJouees >= questionsMax) {
+          finDuJeu();
+        } else {
+          nouvelleQuestion();
+        }
+      }, 5000);
+    }
+
+    function updateAffichageScore() {
+      document.getElementById('score').innerText = score;
+      document.getElementById('bonnes').innerText = bonnes;
+      document.getElementById('mauvaises').innerText = mauvaises;
+    }
+
+    function startChrono() {
+      stopChrono();
+      timerInterval = setInterval(() => {
+        chrono--;
+        document.getElementById('chrono').innerText = `⏳ Temps restant : ${chrono} sec`;
+        if (chrono <= 0) {
+          stopChrono();
+          finDuJeu();
+        }
+      }, 1000);
+    }
+
+    function stopChrono() {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+
+    function finDuJeu() {
+      partieEnCours = false;
+      stopChrono();
+      document.getElementById('user-answer').disabled = true;
+      document.getElementById('btn-verifier').disabled = true;
+      document.getElementById('chrono').innerText = "";
+
+      const total = bonnes + mauvaises;
+      const pourcentage = total > 0 ? Math.round((bonnes / total) * 100) : 0;
+
+      // Résumé
+      const resumeDiv = document.getElementById('resume');
+      resumeDiv.style.display = "block";
+      resumeDiv.innerHTML = `
+        <strong>Résumé final :</strong><br/>
+        Questions jouées : ${total} <br/>
+        Score : ${score} <br/>
+        Réussite : ${pourcentage} %<br/>
+      `;
+
+      // Choix GIF selon score
+      const gif = document.getElementById('gif-felicitation');
+      let urlGif = "";
+      if (pourcentage >= 70) {
+        urlGif = "https://media.giphy.com/media/111ebonMs90YLu/giphy.gif"; // bravo
+      } else if (pourcentage >= 40) {
+        urlGif = "https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif"; // encouragement
+      } else {
+        urlGif = "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif"; // courage
+      }
+      gif.src = urlGif;
+      gif.style.display = "block";
+    }
+  </script>
+</body>
+</html>
