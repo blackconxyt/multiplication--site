@@ -3,441 +3,264 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Jeu de Multiplication Multijoueur</title>
+  <title>Jeu Multiplication</title>
   <link rel="icon" href="favicon.ico" />
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin:0; padding:0;
-      background: #f0f0f0;
-      transition: background-color 0.3s;
-      color: #111;
+      background: white;
+      color: black;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
     }
     body.dark {
-      background: #121212;
-      color: #eee;
+      background: #222;
+      color: white;
     }
-    .container {
-      max-width: 450px;
-      margin: 40px auto;
+    #container {
+      width: 400px;
       padding: 20px;
-      background: #fff;
-      border: 3px solid black;
-      border-radius: 10px;
-      box-shadow: 0 0 12px #aaa;
-      transition: border-color 0.3s, background-color 0.3s;
-    }
-    body.dark .container {
-      background: #1e1e1e;
-      border-color: red;
-      box-shadow: 0 0 12px red;
-    }
-    h1 {
+      border: 2px solid black;
+      border-radius: 8px;
       text-align: center;
-      margin-bottom: 20px;
-    }
-    label {
-      display: block;
-      margin-top: 15px;
-      font-weight: bold;
-    }
-    input[type="email"], input[type="password"], input[type="text"], input[type="number"] {
-      width: 100%;
-      padding: 8px;
-      margin-top: 6px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
+      background: #fff;
       box-sizing: border-box;
-      font-size: 1em;
     }
-    button {
-      margin-top: 20px;
-      padding: 10px 15px;
-      font-size: 1em;
-      cursor: pointer;
-      border-radius: 5px;
-      border: none;
-      background-color: #007bff;
-      color: white;
+    body.dark #container {
+      border-color: red;
+      background: #333;
+    }
+    input, select, button {
+      margin: 8px 0;
+      padding: 8px;
       width: 100%;
-      transition: background-color 0.3s;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    #toggleModeBtn {
-      width: auto;
-      margin: 10px auto 30px;
-      display: block;
-      background-color: #444;
-      color: white;
-      border: none;
-      border-radius: 20px;
-      padding: 8px 20px;
-      cursor: pointer;
-      transition: background-color 0.3s;
-    }
-    #toggleModeBtn:hover {
-      background-color: #222;
-    }
-    #game, #multiSection {
-      display: none;
+      box-sizing: border-box;
+      font-size: 1rem;
     }
     #feedback {
-      margin-top: 15px;
       min-height: 24px;
+      margin-top: 10px;
       font-weight: bold;
     }
     #chrono {
+      margin: 10px 0;
       font-weight: bold;
-      margin-top: 10px;
-      text-align: right;
-    }
-    .flex-row {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-    }
-    .half-width {
-      flex: 1;
-    }
-    #logoutBtn {
-      background-color: #d9534f;
-      margin-top: 10px;
-      width: auto;
-      padding: 8px 15px;
-    }
-    /* Nouveau bouton mode sombre clair dans jeu */
-    #toggleModeBtnInGame {
-      background-color: #444;
-      color: white;
-      border: none;
-      border-radius: 20px;
-      padding: 8px 20px;
-      cursor: pointer;
-      transition: background-color 0.3s;
-      width: auto;
-      margin-top: 10px;
-    }
-    #toggleModeBtnInGame:hover {
-      background-color: #222;
     }
   </style>
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-database-compat.js"></script>
 </head>
 <body>
-  <div class="container" id="loginContainer">
-    <h1>Multiplication Multijoueur</h1>
-    <button id="toggleModeBtn">Mode Sombre / Clair</button>
+  <div id="container">
+    <h1>Jeu Multiplication</h1>
 
-    <div class="flex-row">
-      <div class="half-width" style="border-right:1px solid #ccc; padding-right:10px;">
-        <h3>Créer une partie</h3>
-        <label for="emailCreate">Email</label>
-        <input type="email" id="emailCreate" placeholder="email@example.com" />
-        <label for="passwordCreate">Mot de passe</label>
-        <input type="password" id="passwordCreate" placeholder="Mot de passe" />
-        <button id="createBtn">Créer et Se connecter</button>
-      </div>
-      <div class="half-width" style="padding-left:10px;">
-        <h3>Rejoindre une partie</h3>
-        <label for="gameIdJoin">ID Partie</label>
-        <input type="text" id="gameIdJoin" placeholder="Entrez l'ID de la partie" />
-        <button id="joinBtn">Rejoindre</button>
-      </div>
-    </div>
+    <label>
+      Nombre de questions :
+      <input type="number" id="nombre-questions" value="10" min="1" />
+    </label>
 
-    <div id="loginFeedback" style="color:red; margin-top: 10px; min-height: 20px;"></div>
-  </div>
+    <label>
+      <input type="checkbox" id="mode-grand-defi" /> Mode Grand Défi (10s/question)
+    </label>
 
-  <div class="container" id="game" >
-    <h2>Jeu de multiplication</h2>
-    <button id="toggleModeBtnInGame">Changer mode clair/sombre</button> <!-- bouton ajouté -->
+    <label>
+      <input type="checkbox" id="mode-grand-nombre" /> Mode Grand Nombre (1er nombre 1-10, 2ème 1-1000)
+    </label>
 
-    <div>
-      <label><input type="checkbox" id="modeGrandDefi" /> Mode Grand Défi (10s)</label><br/>
-      <label><input type="checkbox" id="modeGrandNombre" /> Mode Grand Nombre (infini ou 30s combiné)</label><br/>
-      <label for="nombreQuestions">Nombre de questions :</label>
-      <input type="number" id="nombreQuestions" value="10" min="1" max="100" />
-    </div>
+    <button id="btn-lancer">Lancer Partie</button>
+    <button id="btn-toggle-mode">Mode Sombre / Clair</button>
 
-    <p id="question" style="font-weight:bold; margin-top:20px;"></p>
-    <input type="number" id="userAnswer" placeholder="Votre réponse" autocomplete="off" />
-    <button id="verifierBtn">Vérifier</button>
+    <div id="question" style="margin-top: 20px; font-size: 1.2rem;"></div>
 
-    <p id="feedback"></p>
-    <p id="chrono"></p>
+    <input type="number" id="user-answer" placeholder="Votre réponse" disabled />
+    <button id="btn-verifier" disabled>Vérifier</button>
+
+    <div id="chrono"></div>
+    <div id="feedback"></div>
 
     <div style="margin-top: 15px;">
-      <span>Score : <span id="score">0</span></span> | 
-      <span>Bonnes réponses : <span id="bonnes">0</span></span> | 
-      <span>Mauvaises réponses : <span id="mauvaises">0</span></span>
+      Score : <span id="score">0</span> |
+      Bonnes réponses : <span id="bonnes">0</span> |
+      Mauvaises réponses : <span id="mauvaises">0</span>
     </div>
 
-    <button id="logoutBtn">Déconnexion</button>
+    <button id="btn-multijoueur" style="margin-top: 30px;">Multijoueur</button>
   </div>
 
   <script>
-    // --- Firebase Config ---
-    const firebaseConfig = {
-      apiKey: "AIzaSyCwSUJwGsD5BNwuKr8DhhMVYdfMEiLi3Es",
-      authDomain: "bghj-c5fa8.firebaseapp.com",
-      databaseURL: "https://bghj-c5fa8-default-rtdb.firebaseio.com",
-      projectId: "bghj-c5fa8",
-      storageBucket: "bghj-c5fa8.appspot.com",
-      messagingSenderId: "364930076964",
-      appId: "1:364930076964:web:0f4f293ad40de2b680a3b1",
-      measurementId: "G-8PRM7DQZCQ"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.database();
-
-    // --- Variables jeu ---
+    // Variables
     let nombre1, nombre2;
-    let score = 0, bonnes = 0, mauvaises = 0;
-    let questionsMax = 10, questionsJouees = 0;
-    let modeGrandDefi = false, modeGrandNombre = false;
-    let tempsRestant = 0;
-    let timerInterval = null;
+    let score = 0;
+    let bonnes = 0;
+    let mauvaises = 0;
     let partieEnCours = false;
-    let currentGameId = null;
+    let questionsMax = 10;
+    let questionsJouees = 0;
 
-    // --- DOM ---
-    const loginContainer = document.getElementById('loginContainer');
-    const gameContainer = document.getElementById('game');
-    const createBtn = document.getElementById('createBtn');
-    const joinBtn = document.getElementById('joinBtn');
-    const emailCreate = document.getElementById('emailCreate');
-    const passwordCreate = document.getElementById('passwordCreate');
-    const gameIdJoin = document.getElementById('gameIdJoin');
-    const loginFeedback = document.getElementById('loginFeedback');
-    const toggleModeBtn = document.getElementById('toggleModeBtn');
-    const toggleModeBtnInGame = document.getElementById('toggleModeBtnInGame'); // nouveau
-    const verifierBtn = document.getElementById('verifierBtn');
-    const userAnswer = document.getElementById('userAnswer');
-    const questionText = document.getElementById('question');
-    const feedbackText = document.getElementById('feedback');
-    const chronoText = document.getElementById('chrono');
-    const scoreText = document.getElementById('score');
-    const bonnesText = document.getElementById('bonnes');
-    const mauvaisesText = document.getElementById('mauvaises');
-    const modeGrandDefiCheckbox = document.getElementById('modeGrandDefi');
-    const modeGrandNombreCheckbox = document.getElementById('modeGrandNombre');
-    const nombreQuestionsInput = document.getElementById('nombreQuestions');
-    const logoutBtn = document.getElementById('logoutBtn');
+    let tempsRestant = 0;
+    let timerQuestionInterval = null;
 
-    // --- Gestion mode sombre/clair ---
-    function setDarkMode(dark) {
-      if(dark){
-        document.body.classList.add('dark');
-        localStorage.setItem('darkMode', 'true');
-      } else {
-        document.body.classList.remove('dark');
-        localStorage.setItem('darkMode', 'false');
-      }
-    }
-    // Charge mode au démarrage
-    const savedMode = localStorage.getItem('darkMode');
-    setDarkMode(savedMode === 'true');
-
-    toggleModeBtn.addEventListener('click', () => {
-      setDarkMode(!document.body.classList.contains('dark'));
-    });
-    toggleModeBtnInGame.addEventListener('click', () => {
-      setDarkMode(!document.body.classList.contains('dark'));
-    });
-
-    // --- Auth ---
-    auth.onAuthStateChanged(user => {
-      if(user){
-        loginContainer.style.display = 'none';
-        gameContainer.style.display = 'block';
-        currentGameId = user.uid;
-        resetGame();
-      } else {
-        loginContainer.style.display = 'block';
-        gameContainer.style.display = 'none';
-      }
-    });
-
-    createBtn.addEventListener('click', async () => {
-      loginFeedback.textContent = '';
-      const email = emailCreate.value.trim();
-      const password = passwordCreate.value.trim();
-      if(!email || !password){
-        loginFeedback.textContent = "Email et mot de passe requis.";
-        return;
-      }
-      try {
-        await auth.createUserWithEmailAndPassword(email, password);
-        loginFeedback.textContent = '';
-      } catch(e) {
-        if(e.code === 'auth/email-already-in-use'){
-          loginFeedback.textContent = "Email déjà utilisé. Connectez-vous plutôt.";
-          // On essaie de connecter
-          try {
-            await auth.signInWithEmailAndPassword(email, password);
-          } catch(err){
-            loginFeedback.textContent = "Erreur de connexion: "+err.message;
-          }
-        } else {
-          loginFeedback.textContent = e.message;
-        }
-      }
-    });
-
-    joinBtn.addEventListener('click', async () => {
-      loginFeedback.textContent = '';
-      const gameId = gameIdJoin.value.trim();
-      if(!gameId){
-        loginFeedback.textContent = "Entrez l'ID de la partie à rejoindre.";
-        return;
-      }
-      // On vérifie si la partie existe dans la DB
-      const snapshot = await db.ref('parties/' + gameId).get();
-      if(snapshot.exists()){
-        // On se connecte anonymement puis on rejoint
-        try {
-          await auth.signInAnonymously();
-          currentGameId = gameId;
-          startGameMulti(gameId);
-        } catch(e) {
-          loginFeedback.textContent = "Erreur de connexion: " + e.message;
-        }
-      } else {
-        loginFeedback.textContent = "Partie introuvable.";
-      }
-    });
-
-    logoutBtn.addEventListener('click', async () => {
-      await auth.signOut();
-      location.reload();
-    });
-
-    // --- Jeu ---
-    function resetGame(){
-      score = 0; bonnes = 0; mauvaises = 0; questionsJouees = 0;
-      scoreText.textContent = '0';
-      bonnesText.textContent = '0';
-      mauvaisesText.textContent = '0';
-      feedbackText.textContent = '';
-      chronoText.textContent = '';
-      userAnswer.value = '';
-      nombreQuestionsInput.value = 10;
-      modeGrandDefiCheckbox.checked = false;
-      modeGrandNombreCheckbox.checked = false;
-      partieEnCours = false;
-      generateQuestion();
+    // Fonctions
+    function toggleMode() {
+      document.body.classList.toggle('dark');
+      // Le style du container change automatiquement via CSS
     }
 
-    function generateQuestion(){
-      modeGrandDefi = modeGrandDefiCheckbox.checked;
-      modeGrandNombre = modeGrandNombreCheckbox.checked;
-      questionsMax = parseInt(nombreQuestionsInput.value) || 10;
+    function lancerPartie() {
+      score = 0;
+      bonnes = 0;
+      mauvaises = 0;
+      questionsJouees = 0;
+      updateAffichageScore();
+      document.getElementById('feedback').innerText = "";
+      document.getElementById('chrono').innerText = "";
 
-      if(modeGrandDefi && modeGrandNombre){
+      questionsMax = parseInt(document.getElementById('nombre-questions').value);
+      if (isNaN(questionsMax) || questionsMax < 1) questionsMax = 10;
+
+      partieEnCours = true;
+
+      document.getElementById('user-answer').disabled = false;
+      document.getElementById('btn-verifier').disabled = false;
+
+      nouvelleQuestion();
+    }
+
+    function nouvelleQuestion() {
+      if (!partieEnCours) return;
+
+      if (questionsJouees >= questionsMax) {
+        finDuJeu();
+        return;
+      }
+
+      questionsJouees++;
+
+      const modeGrandDefi = document.getElementById('mode-grand-defi').checked;
+      const modeGrandNombre = document.getElementById('mode-grand-nombre').checked;
+
+      if (modeGrandNombre) {
+        nombre1 = Math.floor(Math.random() * 10) + 1;
+        nombre2 = Math.floor(Math.random() * 1000) + 1;
+      } else {
+        nombre1 = Math.floor(Math.random() * 10) + 1;
+        nombre2 = Math.floor(Math.random() * 10) + 1;
+      }
+
+      document.getElementById('question').innerText = `Question ${questionsJouees} / ${questionsMax} : Combien font ${nombre1} × ${nombre2} ?`;
+      document.getElementById('user-answer').value = "";
+      document.getElementById('feedback').innerText = "";
+
+      document.getElementById('user-answer').disabled = false;
+      document.getElementById('btn-verifier').disabled = false;
+      document.getElementById('user-answer').focus();
+
+      // Timer
+      if (timerQuestionInterval) clearInterval(timerQuestionInterval);
+
+      if (modeGrandNombre && modeGrandDefi) {
+        // Grand nombre + Grand défi => 30s
         tempsRestant = 30;
-      } else if(modeGrandNombre){
-        tempsRestant = 0;
-      } else if(modeGrandDefi){
+      } else if (modeGrandNombre) {
+        // Grand nombre seul => temps infini, mais on met un compteur 30s qui n'interrompt pas
+        tempsRestant = 30;
+      } else if (modeGrandDefi) {
+        // Grand défi seul => 10s
         tempsRestant = 10;
       } else {
+        // Pas de mode => pas de timer
         tempsRestant = 0;
       }
 
-      if(modeGrandNombre){
-        nombre1 = Math.floor(Math.random() * 90) + 10;
-        nombre2 = Math.floor(Math.random() * 90) + 10;
-      } else {
-        nombre1 = Math.floor(Math.random() * 9) + 1;
-        nombre2 = Math.floor(Math.random() * 9) + 1;
-      }
-      questionText.textContent = `Combien font ${nombre1} × ${nombre2} ?`;
-
-      if(tempsRestant > 0){
-        chronoText.textContent = `Temps restant : ${tempsRestant}s`;
-        if(timerInterval) clearInterval(timerInterval);
-        timerInterval = setInterval(() => {
+      if (tempsRestant > 0) {
+        afficherTimer();
+        timerQuestionInterval = setInterval(() => {
           tempsRestant--;
-          if(tempsRestant <= 0){
-            clearInterval(timerInterval);
-            feedbackText.textContent = "Temps écoulé ! Partie terminée.";
-            endGame();
-          } else {
-            chronoText.textContent = `Temps restant : ${tempsRestant}s`;
+          afficherTimer();
+
+          if (tempsRestant <= 0) {
+            clearInterval(timerQuestionInterval);
+            tempsEcoule();
           }
         }, 1000);
       } else {
-        chronoText.textContent = '';
-        if(timerInterval) clearInterval(timerInterval);
+        document.getElementById('chrono').innerText = "";
       }
     }
 
-    function verifierReponse(){
-      if(partieEnCours) return;
-      const reponse = parseInt(userAnswer.value.trim());
-      if(isNaN(reponse)){
-        feedbackText.textContent = "Entrez une réponse valide.";
+    function afficherTimer() {
+      document.getElementById('chrono').innerText = `⏳ Temps restant : ${tempsRestant} sec`;
+    }
+
+    function tempsEcoule() {
+      // Bloquer input
+      document.getElementById('user-answer').disabled = true;
+      document.getElementById('btn-verifier').disabled = true;
+
+      mauvaises++;
+      updateAffichageScore();
+
+      const bonneReponse = nombre1 * nombre2;
+      document.getElementById('feedback').innerText = `⏰ Temps écoulé ! La réponse était ${bonneReponse}.`;
+
+      setTimeout(() => {
+        if (questionsJouees >= questionsMax) {
+          finDuJeu();
+        } else {
+          nouvelleQuestion();
+        }
+      }, 5000);
+    }
+
+    function verifier() {
+      if (!partieEnCours) return;
+
+      if (timerQuestionInterval) clearInterval(timerQuestionInterval);
+
+      const reponse = parseInt(document.getElementById('user-answer').value);
+      const bonneReponse = nombre1 * nombre2;
+      const feedback = document.getElementById('feedback');
+
+      if (isNaN(reponse)) {
+        feedback.innerText = "⛔ Entrez un nombre.";
         return;
       }
-      const bonneReponse = nombre1 * nombre2;
-      questionsJouees++;
 
-      if(reponse === bonneReponse){
+      if (reponse === bonneReponse) {
+        feedback.innerText = "✅ Bonne réponse !";
         score++;
         bonnes++;
-        feedbackText.textContent = "Correct ! 🎉";
       } else {
+        feedback.innerText = `❌ Mauvaise réponse. C'était ${bonneReponse}.`;
         mauvaises++;
-        feedbackText.textContent = `Faux ! La bonne réponse était ${bonneReponse}.`;
       }
-      scoreText.textContent = score;
-      bonnesText.textContent = bonnes;
-      mauvaisesText.textContent = mauvaises;
-      userAnswer.value = '';
-      if(questionsJouees >= questionsMax){
-        endGame();
-      } else {
-        generateQuestion();
-      }
+
+      updateAffichageScore();
+
+      document.getElementById('user-answer').disabled = true;
+      document.getElementById('btn-verifier').disabled = true;
+
+      setTimeout(() => {
+        if (questionsJouees >= questionsMax) {
+          finDuJeu();
+        } else {
+          nouvelleQuestion();
+        }
+      }, 5000);
     }
 
-    verifierBtn.addEventListener('click', verifierReponse);
-    userAnswer.addEventListener('keydown', e => {
-      if(e.key === 'Enter'){
-        verifierReponse();
-      }
-    });
-
-    function endGame(){
-      partieEnCours = true;
-      feedbackText.textContent += ` Partie terminée ! Score final : ${score}/${questionsMax}.`;
-      chronoText.textContent = '';
-      if(timerInterval) clearInterval(timerInterval);
+    function updateAffichageScore() {
+      document.getElementById('score').innerText = score;
+      document.getElementById('bonnes').innerText = bonnes;
+      document.getElementById('mauvaises').innerText = mauvaises;
     }
 
-    // --- Mode multi joueur basique (crée une partie) ---
-    async function startGameMulti(gameId){
-      currentGameId = gameId;
-      loginContainer.style.display = 'none';
-      gameContainer.style.display = 'block';
-      resetGame();
+    function finDuJeu() {
+      partieEnCours = false;
+      if (timerQuestionInterval) clearInterval(timerQuestionInterval);
 
-      // Créer une entrée dans la DB pour la partie si elle n'existe pas déjà
-      const partieRef = db.ref('parties/' + gameId);
-      const snapshot = await partieRef.get();
-      if(!snapshot.exists()){
-        await partieRef.set({
-          createdBy: auth.currentUser.uid,
-          createdAt: Date.now(),
-          status: "active",
-        });
-      }
-    }
-  </script>
-</body>
-</html>
+      document.getElementById('chrono').innerText = "";
+      document.getElementById('question').innerText = "Partie terminée !";
+      document.getElementById('user-answer').
