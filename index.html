@@ -1,102 +1,268 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Connexion - Jeu de Multiplication</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jeu de Multiplication</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #fff;
+      color: #000;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .dark {
+      background-color: #111;
+      color: #fff;
+    }
+
+    .container {
+      border: 4px solid #000;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      max-width: 500px;
+      width: 100%;
+    }
+
+    .dark .container {
+      border-color: red;
+    }
+
+    input, button, select {
+      font-size: 16px;
+      padding: 5px;
+      margin: 5px;
+    }
+
+    #question {
+      font-size: 24px;
+      margin: 15px 0;
+    }
+
+    #feedback {
+      margin: 10px 0;
+      font-weight: bold;
+    }
+
+    #chrono {
+      font-size: 18px;
+      margin: 10px 0;
+    }
+
+    #auth-section {
+      margin-bottom: 20px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .btn {
+      cursor: pointer;
+    }
+  </style>
+
+  <!-- Firebase -->
   <script type="module">
-    // Importation des SDK Firebase
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCwSUJwGsD5BNwuKr8DhhMVYdfMEiLi3Es",
       authDomain: "bghj-c5fa8.firebaseapp.com",
       projectId: "bghj-c5fa8",
-      storageBucket: "bghj-c5fa8.firebasestorage.app",
+      storageBucket: "bghj-c5fa8.appspot.com",
       messagingSenderId: "364930076964",
-      appId: "1:364930076964:web:0f4f293ad40de2b680a3b1",
-      measurementId: "G-8PRM7DQZCQ"
+      appId: "1:364930076964:web:0f4f293ad40de2b680a3b1"
     };
 
     const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
+    const auth = getAuth();
 
-    const provider = new GoogleAuthProvider();
+    window.auth = auth;
+    window.GoogleAuthProvider = GoogleAuthProvider;
+    window.signInWithPopup = signInWithPopup;
+    window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+    window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
+    window.signOut = signOut;
+    window.onAuthStateChanged = onAuthStateChanged;
+  </script>
+</head>
+<body>
+  <div class="container">
+    <div id="auth-section">
+      <div id="user-info" class="hidden"></div>
+      <button onclick="loginWithGoogle()">Connexion Google</button>
+      <button onclick="logout()">Déconnexion</button>
+    </div>
 
-    // Auth state
-    onAuthStateChanged(auth, (user) => {
-      const status = document.getElementById('status');
-      if (user) {
-        status.innerHTML = `✅ Connecté en tant que : ${user.email || user.displayName}`;
-        document.getElementById("login-zone").style.display = "none";
-        document.getElementById("logout-btn").style.display = "inline-block";
-        // Ici tu peux afficher le jeu
+    <button onclick="toggleMode()">🎨 Mode Sombre/Clair</button>
+    <br><br>
+
+    <label>Nombre de questions :
+      <input type="number" id="nombre-questions" value="5" min="1">
+    </label>
+    <br>
+    <label><input type="checkbox" id="mode-grand-nombre"> Grand Nombre</label>
+    <label><input type="checkbox" id="mode-grand-defi"> Grand Défi</label>
+    <br><br>
+    <button onclick="lancerPartie()">Démarrer la Partie</button>
+    <div id="chrono"></div>
+    <div id="question"></div>
+    <input type="number" id="user-answer" disabled>
+    <button id="btn-verifier" onclick="verifier()" disabled>Vérifier</button>
+    <div id="feedback"></div>
+    <div id="resume" class="hidden">
+      ✅ Bonnes réponses : <span id="bonnes">0</span><br>
+      ❌ Mauvaises réponses : <span id="mauvaises">0</span><br>
+      🏆 Score total : <span id="score">0</span>
+    </div>
+  </div>
+
+  <script>
+    let nombre1, nombre2;
+    let score = 0, bonnes = 0, mauvaises = 0, questionsJouees = 0;
+    let questionsMax = 10;
+    let partieEnCours = false;
+    let timer = null;
+    let tempsRestant = 0;
+
+    const inputAnswer = document.getElementById("user-answer");
+    inputAnswer.addEventListener("keyup", e => {
+      if (e.key === "Enter") verifier();
+    });
+
+    function toggleMode() {
+      document.body.classList.toggle("dark");
+    }
+
+    function lancerPartie() {
+      score = bonnes = mauvaises = questionsJouees = 0;
+      questionsMax = parseInt(document.getElementById("nombre-questions").value) || 10;
+      partieEnCours = true;
+      document.getElementById("resume").classList.add("hidden");
+      document.getElementById("feedback").innerText = "";
+      inputAnswer.disabled = false;
+      document.getElementById("btn-verifier").disabled = false;
+      nouvelleQuestion();
+    }
+
+    function nouvelleQuestion() {
+      if (!partieEnCours || questionsJouees >= questionsMax) return finDuJeu();
+
+      const grandNombre = document.getElementById("mode-grand-nombre").checked;
+      const grandDefi = document.getElementById("mode-grand-defi").checked;
+
+      questionsJouees++;
+      nombre1 = Math.floor(Math.random() * 10) + 1;
+      nombre2 = grandNombre ? Math.floor(Math.random() * 1000) + 1 : Math.floor(Math.random() * 10) + 1;
+
+      document.getElementById("question").innerText = `Question ${questionsJouees}/${questionsMax} : ${nombre1} × ${nombre2} = ?`;
+      inputAnswer.value = "";
+      inputAnswer.disabled = false;
+      inputAnswer.focus();
+      document.getElementById("btn-verifier").disabled = false;
+
+      // Temps selon le mode
+      clearInterval(timer);
+      if (grandNombre && grandDefi) tempsRestant = 30;
+      else if (grandDefi) tempsRestant = 10;
+      else if (grandNombre) tempsRestant = Infinity;
+      else tempsRestant = 10;
+
+      if (tempsRestant !== Infinity) {
+        afficherTimer();
+        timer = setInterval(() => {
+          tempsRestant--;
+          afficherTimer();
+          if (tempsRestant <= 0) {
+            clearInterval(timer);
+            feedback("⏰ Temps écoulé. Réponse : " + (nombre1 * nombre2), false);
+            setTimeout(nouvelleQuestion, 3000);
+          }
+        }, 1000);
       } else {
-        status.innerHTML = "❌ Non connecté.";
-        document.getElementById("login-zone").style.display = "block";
-        document.getElementById("logout-btn").style.display = "none";
+        document.getElementById("chrono").innerText = "∞ Temps illimité";
+      }
+    }
+
+    function afficherTimer() {
+      document.getElementById("chrono").innerText = `⏳ Temps restant : ${tempsRestant}s`;
+    }
+
+    function verifier() {
+      if (!partieEnCours) return;
+      clearInterval(timer);
+
+      const reponse = parseInt(inputAnswer.value);
+      const bonneReponse = nombre1 * nombre2;
+      if (isNaN(reponse)) {
+        feedback("⛔ Entrez un nombre.", false);
+        return;
+      }
+
+      const estBonne = reponse === bonneReponse;
+      feedback(estBonne ? "✅ Bonne réponse !" : `❌ Faux ! Réponse : ${bonneReponse}`, estBonne);
+      setTimeout(nouvelleQuestion, 3000);
+    }
+
+    function feedback(message, bonne) {
+      if (bonne) {
+        score++; bonnes++;
+      } else {
+        mauvaises++;
+      }
+      document.getElementById("feedback").innerText = message;
+      inputAnswer.disabled = true;
+      document.getElementById("btn-verifier").disabled = true;
+      updateScore();
+    }
+
+    function finDuJeu() {
+      partieEnCours = false;
+      clearInterval(timer);
+      inputAnswer.disabled = true;
+      document.getElementById("btn-verifier").disabled = true;
+      document.getElementById("chrono").innerText = "";
+      document.getElementById("resume").classList.remove("hidden");
+    }
+
+    function updateScore() {
+      document.getElementById("score").innerText = score;
+      document.getElementById("bonnes").innerText = bonnes;
+      document.getElementById("mauvaises").innerText = mauvaises;
+    }
+
+    // --- Auth Firebase ---
+    onAuthStateChanged(auth, user => {
+      const userInfo = document.getElementById("user-info");
+      if (user) {
+        userInfo.innerText = `Connecté : ${user.displayName || user.email}`;
+        userInfo.classList.remove("hidden");
+      } else {
+        userInfo.innerText = "";
+        userInfo.classList.add("hidden");
       }
     });
 
-    // Email signup
-    window.signup = () => {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      createUserWithEmailAndPassword(auth, email, password)
-        .then(() => alert("✅ Compte créé"))
-        .catch((error) => alert("Erreur : " + error.message));
-    };
+    function loginWithGoogle() {
+      const provider = new GoogleAuthProvider();
+      signInWithPopup(auth, provider).catch(alert);
+    }
 
-    // Email login
-    window.login = () => {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      signInWithEmailAndPassword(auth, email, password)
-        .catch((error) => alert("Erreur : " + error.message));
-    };
-
-    // Google login
-    window.googleLogin = () => {
-      signInWithPopup(auth, provider)
-        .catch((error) => alert("Erreur Google : " + error.message));
-    };
-
-    // Logout
-    window.logout = () => {
-      signOut(auth);
-    };
+    function logout() {
+      signOut(auth).catch(alert);
+    }
   </script>
-
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin: 40px;
-    }
-
-    input {
-      padding: 8px;
-      margin: 5px;
-    }
-
-    button {
-      padding: 10px 20px;
-      margin: 5px;
-    }
-  </style>
-</head>
-<body>
-  <h1>🎯 Connexion au Jeu</h1>
-  <div id="status">Chargement...</div>
-
-  <div id="login-zone" style="display: none;">
-    <input type="email" id="email" placeholder="Adresse e-mail" required><br>
-    <input type="password" id="password" placeholder="Mot de passe" required><br>
-    <button onclick="signup()">Créer un compte</button>
-    <button onclick="login()">Se connecter</button><br>
-    <button onclick="googleLogin()">Connexion avec Google</button>
-  </div>
-
-  <button id="logout-btn" onclick="logout()" style="display: none;">Se déconnecter</button>
 </body>
 </html>
