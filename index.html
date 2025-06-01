@@ -1,3 +1,62 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Jeu de Multiplication</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; background: white; color: black; }
+  body.dark { background: #121212; color: white; }
+  label { margin-right: 10px; }
+  #feedback { margin-top: 10px; font-weight: bold; }
+  #resume { margin-top: 20px; font-size: 1.2em; }
+  #gif-felicitation { max-width: 150px; display: none; margin-top: 10px; }
+  button { padding: 8px 12px; margin-top: 10px; }
+  input[type="number"] { width: 50px; }
+</style>
+</head>
+<body>
+
+<h1>Jeu de Multiplication</h1>
+
+<div>
+  <label for="nombre-questions">Nombre de questions :</label>
+  <input type="number" id="nombre-questions" value="10" min="1" max="100" />
+</div>
+
+<div>
+  <input type="checkbox" id="mode-grand-nombre" />
+  <label for="mode-grand-nombre">Mode grand nombre (1-10 × 1-1000)</label>
+</div>
+
+<div>
+  <input type="checkbox" id="defi-mode" />
+  <label for="defi-mode">Mode défi (timer activé)</label>
+</div>
+
+<div>
+  <button onclick="toggleMode()">Changer mode clair/sombre</button>
+  <button onclick="lancerPartie()">Lancer la partie</button>
+</div>
+
+<hr />
+
+<div id="question">Cliquez sur "Lancer la partie" pour commencer</div>
+<div>
+  <input type="number" id="user-answer" disabled />
+  <button id="btn-verifier" disabled onclick="verifier()">Vérifier</button>
+</div>
+
+<div id="chrono"></div>
+<div id="feedback"></div>
+
+<hr />
+
+<div>Score : <span id="score">0</span> | Bonnes réponses : <span id="bonnes">0</span> | Mauvaises réponses : <span id="mauvaises">0</span></div>
+
+<div id="resume" style="display:none;"></div>
+<img id="gif-felicitation" src="" alt="Félicitations" />
+
 <script>
   let nombre1, nombre2;
   let score = 0;
@@ -66,13 +125,10 @@
     document.getElementById('btn-verifier').disabled = false;
     document.getElementById('user-answer').focus();
 
-    // Gérer timer selon mode :
     if (defiActif) {
-      // Si défi activé : 
-      tempsRestant = modeGrandNombre ? 30 : 10; // 30 sec si mode grand nombre + défi, sinon 10 sec
+      tempsRestant = modeGrandNombre ? 30 : 10;
       startTimer();
     } else {
-      // Pas de timer si défi désactivé, même en mode grand nombre seul
       stopTimer();
       document.getElementById('chrono').innerText = "";
     }
@@ -180,15 +236,18 @@
       ❌ Erreurs : ${mauvaises}
     `;
 
-    // Affiche un GIF selon le score
     const gif = document.getElementById('gif-felicitation');
+    // Gifs hébergés sur Imgur
     if (pourcentage > 80) {
-      gif.src = "https://media.giphy.com/media/111ebonMs90YLu/giphy.gif"; // Bravo
+      gif.src = "https://i.imgur.com/1iJfskW.gif"; // super happy
     } else if (pourcentage > 50) {
-      gif.src = "https://media.giphy.com/media/3o6ZsXh4kD6REY61eI/giphy.gif"; // Encouragement
+      gif.src = "https://i.imgur.com/Lx3JjQq.gif"; // content
     } else {
-      gif.src = "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif"; // Essaie encore
+      gif.src = "https://i.imgur.com/5Yz8BoU.gif"; // triste
     }
     gif.style.display = "block";
   }
 </script>
+
+</body>
+</html>
