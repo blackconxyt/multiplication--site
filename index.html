@@ -1,104 +1,81 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Jeu de Multiplication</title>
-  <link rel="icon" href="favicon.ico" />
+  <link rel="icon" type="image/png" href="favicon.png">
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 0;
-      background: white;
+      background-color: white;
       color: black;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: start;
-      height: 100vh;
+      justify-content: flex-start;
+      min-height: 100vh;
+      margin: 0;
+      padding: 1rem;
+      transition: background-color 0.3s, color 0.3s;
     }
 
-    .dark {
-      background: #121212;
+    body.dark {
+      background-color: #121212;
       color: white;
     }
 
-    .container {
-      margin-top: 40px;
-      padding: 20px;
-      border: 3px solid black;
+    .jeu-container {
+      border: 4px solid black;
+      padding: 2rem;
+      margin-top: 2rem;
       border-radius: 12px;
-      width: 90%;
       max-width: 400px;
-      background: white;
+      width: 100%;
+      transition: border-color 0.3s;
     }
 
-    body.dark .container {
+    body.dark .jeu-container {
       border-color: red;
-      background-color: #1e1e1e;
     }
 
     h1 {
-      margin-top: 10px;
+      margin: 0.5rem 0;
     }
 
-    input, button, select {
-      padding: 8px;
-      margin: 5px 0;
-      font-size: 16px;
-      width: 100%;
+    button {
+      margin: 0.5rem;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
     }
 
-    #feedback {
-      margin-top: 10px;
-      font-weight: bold;
-    }
-
-    #resume {
-      display: none;
-      margin-top: 15px;
-    }
-
-    #chrono {
-      margin: 10px 0;
-      font-weight: bold;
-    }
-
-    .logo {
-      font-size: 32px;
-      font-weight: bold;
-      color: red;
-      margin-top: 10px;
+    input[type="number"] {
+      width: 60px;
+      padding: 0.3rem;
+      font-size: 1rem;
     }
   </style>
 </head>
 <body>
-  <div class="logo">❌</div>
-  <button onclick="toggleMode()" id="mode-btn">🌞 Mode Sombre</button>
+  <img src="favicon.png" alt="Logo" width="48" height="48">
+  <h1>Jeu de Multiplication</h1>
 
-  <div class="container">
-    <h1>Jeu de Multiplication</h1>
+  <div>
+    <button onclick="toggleMode()">🌙/☀️ Mode</button>
+    <label><input type="checkbox" id="mode-grand-nombre"> Grand Nombre</label>
+    <label><input type="checkbox" id="mode-grand-defi"> Grand Défi</label>
+    <label>Questions : <input type="number" id="nombre-questions" value="10"></label>
+    <button onclick="lancerPartie()">Démarrer</button>
+  </div>
 
-    <label>Nombre de questions :</label>
-    <input type="number" id="nombre-questions" min="1" max="100" value="10" />
-
-    <label><input type="checkbox" id="mode-grand-nombre" /> Mode grand nombre (1×1 à 10×1000)</label>
-    <label><input type="checkbox" id="mode-grand-defi" /> Mode grand défi (temps limité)</label>
-
-    <button onclick="lancerPartie()">Lancer la partie</button>
-
-    <p id="question">Cliquez sur lancer pour commencer</p>
-    <input type="number" id="user-answer" placeholder="Votre réponse" disabled />
-    <button onclick="verifier()" id="btn-verifier" disabled>Vérifier</button>
-
-    <p id="chrono"></p>
-    <p id="feedback"></p>
-
-    <div id="resume">
-      <p>✅ Bonnes réponses : <span id="bonnes">0</span></p>
-      <p>❌ Mauvaises réponses : <span id="mauvaises">0</span></p>
-      <p>🏆 Score : <span id="score">0</span></p>
-    </div>
+  <div class="jeu-container">
+    <div id="question">Cliquez sur Démarrer pour jouer !</div>
+    <input type="number" id="user-answer" disabled>
+    <button id="btn-verifier" onclick="verifier()" disabled>Vérifier</button>
+    <div id="chrono"></div>
+    <div id="feedback"></div>
+    <div>Score : <span id="score">0</span></div>
+    <div>Bonnes réponses : <span id="bonnes">0</span> | Mauvaises réponses : <span id="mauvaises">0</span></div>
   </div>
 
   <script>
@@ -116,10 +93,7 @@
     let timerQuestionInterval = null;
 
     function toggleMode() {
-      const body = document.body;
-      const btn = document.getElementById('mode-btn');
-      body.classList.toggle('dark');
-      btn.innerText = body.classList.contains('dark') ? "🌙 Mode Clair" : "🌞 Mode Sombre";
+      document.body.classList.toggle('dark');
     }
 
     function lancerPartie() {
@@ -127,12 +101,13 @@
       bonnes = 0;
       mauvaises = 0;
       questionsJouees = 0;
+
       updateAffichageScore();
       document.getElementById('feedback').innerText = "";
-      document.getElementById('resume').style.display = "none";
 
       modeGrandNombre = document.getElementById('mode-grand-nombre').checked;
       modeGrandDefi = document.getElementById('mode-grand-defi').checked;
+
       questionsMax = parseInt(document.getElementById('nombre-questions').value);
       if (isNaN(questionsMax) || questionsMax < 1) questionsMax = 10;
 
@@ -140,34 +115,26 @@
       document.getElementById('user-answer').disabled = false;
       document.getElementById('btn-verifier').disabled = false;
 
-      questionsJouees = 0;
       nouvelleQuestion();
     }
 
     function nouvelleQuestion() {
-      if (!partieEnCours) return;
-      if (questionsJouees >= questionsMax) return finDuJeu();
-
-      questionsJouees++;
-
-      if (modeGrandNombre) {
-        nombre1 = Math.floor(Math.random() * 10) + 1;
-        nombre2 = Math.floor(Math.random() * 1000) + 1;
-      } else {
-        nombre1 = Math.floor(Math.random() * 10) + 1;
-        nombre2 = Math.floor(Math.random() * 10) + 1;
+      if (!partieEnCours || questionsJouees >= questionsMax) {
+        finDuJeu();
+        return;
       }
 
-      document.getElementById('question').innerText =
-        `Question ${questionsJouees} / ${questionsMax} : Combien font ${nombre1} × ${nombre2} ?`;
-      document.getElementById('user-answer').value = "";
-      document.getElementById('feedback').innerText = "";
+      questionsJouees++;
+      nombre1 = Math.floor(Math.random() * 10) + 1;
+      nombre2 = modeGrandNombre ? Math.floor(Math.random() * 1000) + 1 : Math.floor(Math.random() * 10) + 1;
 
+      document.getElementById('question').innerText = `Question ${questionsJouees}/${questionsMax} : ${nombre1} x ${nombre2} ?`;
+      document.getElementById('user-answer').value = "";
       document.getElementById('user-answer').disabled = false;
       document.getElementById('btn-verifier').disabled = false;
+      document.getElementById('feedback').innerText = "";
       document.getElementById('user-answer').focus();
 
-      // Timer : 30s en mode grand nombre seul, 10s sinon
       if (modeGrandDefi) {
         tempsRestant = modeGrandNombre ? 30 : 10;
         afficherTimer();
@@ -175,18 +142,26 @@
         timerQuestionInterval = setInterval(() => {
           tempsRestant--;
           afficherTimer();
+
           if (tempsRestant <= 0) {
             clearInterval(timerQuestionInterval);
             tempsEcoule();
           }
         }, 1000);
+      } else if (modeGrandNombre) {
+        tempsRestant = 0;
+        afficherTimer();
       } else {
         document.getElementById('chrono').innerText = "";
       }
     }
 
     function afficherTimer() {
-      document.getElementById('chrono').innerText = `⏳ Temps restant : ${tempsRestant} sec`;
+      if (modeGrandDefi || modeGrandNombre) {
+        document.getElementById('chrono').innerText = `⏳ Temps restant : ${tempsRestant} sec`;
+      } else {
+        document.getElementById('chrono').innerText = "";
+      }
     }
 
     function tempsEcoule() {
@@ -194,37 +169,34 @@
       document.getElementById('user-answer').disabled = true;
       mauvaises++;
       updateAffichageScore();
-      document.getElementById('feedback').innerText =
-        `⏰ Temps écoulé ! La réponse était ${nombre1 * nombre2}.`;
+      const bonneReponse = nombre1 * nombre2;
+      document.getElementById('feedback').innerText = `⏰ Temps écoulé ! La réponse était ${bonneReponse}.`;
+
       setTimeout(() => {
-        if (questionsJouees >= questionsMax) {
-          finDuJeu();
-        } else {
-          nouvelleQuestion();
-        }
+        if (questionsJouees >= questionsMax) finDuJeu();
+        else nouvelleQuestion();
       }, 5000);
     }
 
     function verifier() {
       if (!partieEnCours) return;
-      clearInterval(timerQuestionInterval);
+      if (modeGrandDefi) clearInterval(timerQuestionInterval);
 
       const reponse = parseInt(document.getElementById('user-answer').value);
       const bonneReponse = nombre1 * nombre2;
-      const feedback = document.getElementById('feedback');
 
       if (isNaN(reponse)) {
-        feedback.innerText = "⛔ Entrez un nombre.";
+        document.getElementById('feedback').innerText = "⛔ Entrez un nombre.";
         return;
       }
 
       if (reponse === bonneReponse) {
-        feedback.innerText = "✅ Bonne réponse !";
         score++;
         bonnes++;
+        document.getElementById('feedback').innerText = "✅ Bonne réponse !";
       } else {
-        feedback.innerText = `❌ Mauvaise réponse. C'était ${bonneReponse}.`;
         mauvaises++;
+        document.getElementById('feedback').innerText = `❌ Mauvaise réponse. C'était ${bonneReponse}.`;
       }
 
       updateAffichageScore();
@@ -232,11 +204,8 @@
       document.getElementById('user-answer').disabled = true;
 
       setTimeout(() => {
-        if (questionsJouees >= questionsMax) {
-          finDuJeu();
-        } else {
-          nouvelleQuestion();
-        }
+        if (questionsJouees >= questionsMax) finDuJeu();
+        else nouvelleQuestion();
       }, 5000);
     }
 
@@ -252,7 +221,7 @@
       document.getElementById('user-answer').disabled = true;
       document.getElementById('btn-verifier').disabled = true;
       document.getElementById('chrono').innerText = "";
-      document.getElementById('resume').style.display = "block";
+      document.getElementById('feedback').innerText = `✅ Partie terminée ! Score final : ${score}/${questionsMax}`;
     }
   </script>
 </body>
