@@ -1,138 +1,208 @@
 
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Table de Multiplication 10x10</title>
+  <title>Jeu de Multiplication</title>
   <style>
+    :root {
+      --bg-color: #f9f9f9;
+      --text-color: #000;
+      --box-color: #fff;
+    }
+    body.dark {
+      --bg-color: #121212;
+      --text-color: #f9f9f9;
+      --box-color: #1e1e1e;
+    }
     body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
       font-family: Arial, sans-serif;
-      background-color: #f9f9f9;
       text-align: center;
       padding: 40px;
+      transition: background 0.3s, color 0.3s;
     }
     .container {
-      background: white;
+      background: var(--box-color);
       padding: 30px;
       border-radius: 10px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.1);
       display: inline-block;
       max-width: 700px;
       margin: auto;
+      transition: background 0.3s;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+      margin: 10px;
+      border-radius: 5px;
     }
     input {
-      padding: 10px;
-      width: 100px;
-      margin: 10px;
-      font-size: 16px;
+      width: 150px;
+      border: 1px solid #ccc;
     }
     button {
-      padding: 10px 20px;
-      font-size: 16px;
       cursor: pointer;
       background-color: #4CAF50;
       color: white;
       border: none;
-      border-radius: 5px;
     }
-    .result, .quiz-result {
+    .result {
+      font-size: 18px;
       margin-top: 15px;
-      font-size: 20px;
-      color: #333;
     }
-    table {
-      margin-top: 40px;
-      width: 100%;
-      border-collapse: collapse;
+    .mode-btn {
+      background-color: #555;
+      margin-top: 20px;
     }
-    table td, table th {
-      border: 1px solid #ccc;
-      padding: 10px;
-      font-size: 14px;
-    }
-    table th {
-      background-color: #f0f0f0;
-    }
-    td {
-      text-align: center;
+    .score {
+      font-size: 16px;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Multiplication (max 10 x 10)</h1>
+    <h1>🎯 Jeu de Multiplication</h1>
 
-    <!-- Partie interactive -->
-    <h2>➤ Teste-toi !</h2>
-    <p>Combien font <strong>7 × 8</strong> ?</p>
-    <input type="number" id="quiz-answer" placeholder="Votre réponse" />
+    <!-- Boutons du haut -->
+    <button class="mode-btn" onclick="toggleMode()">🌗 Mode clair / sombre</button>
     <br />
-    <button onclick="verifierReponse()">Vérifier</button>
-    <div class="quiz-result" id="quiz-result"></div>
-
-    <hr style="margin: 40px 0;">
-
-    <!-- Calculateur libre -->
-    <h2>➤ Multiplie deux nombres</h2>
-    <input type="number" id="num1" min="1" max="10" placeholder="1 à 10" />
-    <input type="number" id="num2" min="1" max="10" placeholder="1 à 10" />
+    <label>
+      <input type="checkbox" id="defi-mode" /> Activer le mode défi (30 sec)
+    </label>
     <br />
-    <button onclick="multiplier()">Multiplier</button>
-    <div class="result" id="result"></div>
+    <button onclick="lancerPartie()">🎮 Lancer une partie</button>
 
-    <!-- Table complète -->
-    <h2>➤ Table complète de multiplication (1 à 10)</h2>
-    <table id="table-multiplication"></table>
+    <!-- Affichage de la question -->
+    <p id="question" style="font-size: 20px; margin: 20px 0;"></p>
+
+    <!-- Entrée réponse -->
+    <input type="number" id="user-answer" placeholder="Votre réponse" disabled />
+
+    <br />
+
+    <!-- Boutons de jeu -->
+    <button onclick="verifier()" id="btn-verifier" disabled>Vérifier</button>
+    <button onclick="nouvelleQuestion()" id="btn-nouvelle" disabled>Nouvelle question</button>
+
+    <!-- Infos jeu -->
+    <div class="score">
+      🏆 Score : <span id="score">0</span> |
+      ✅ Bonnes : <span id="bonnes">0</span> |
+      ❌ Erreurs : <span id="mauvaises">0</span>
+    </div>
+
+    <div id="chrono" style="font-size: 20px; margin-top: 10px;"></div>
+    <div class="result" id="feedback"></div>
   </div>
 
   <script>
-    function verifierReponse() {
-      const reponse = parseInt(document.getElementById('quiz-answer').value);
-      const quizResult = document.getElementById('quiz-result');
+    let nombre1, nombre2;
+    let score = 0;
+    let bonnes = 0;
+    let mauvaises = 0;
+    let partieEnCours = false;
+    let chrono = 30;
+    let timerInterval = null;
+    let defiActif = false;
+
+    function toggleMode() {
+      document.body.classList.toggle('dark');
+    }
+
+    function lancerPartie() {
+      // Reset
+      score = 0;
+      bonnes = 0;
+      mauvaises = 0;
+      chrono = 30;
+      updateAffichageScore();
+      document.getElementById('feedback').innerText = "";
+
+      partieEnCours = true;
+      defiActif = document.getElementById('defi-mode').checked;
+
+      document.getElementById('user-answer').disabled = false;
+      document.getElementById('btn-verifier').disabled = false;
+      document.getElementById('btn-nouvelle').disabled = false;
+
+      nouvelleQuestion();
+
+      if (defiActif) {
+        startChrono();
+      } else {
+        document.getElementById('chrono').innerText = "";
+        stopChrono();
+      }
+    }
+
+    function nouvelleQuestion() {
+      if (!partieEnCours) return;
+      nombre1 = Math.floor(Math.random() * 10) + 1;
+      nombre2 = Math.floor(Math.random() * 10) + 1;
+      document.getElementById('question').innerText = `Combien font ${nombre1} × ${nombre2} ?`;
+      document.getElementById('user-answer').value = "";
+      document.getElementById('feedback').innerText = "";
+    }
+
+    function verifier() {
+      if (!partieEnCours) return;
+
+      const reponse = parseInt(document.getElementById('user-answer').value);
+      const bonneReponse = nombre1 * nombre2;
+      const feedback = document.getElementById('feedback');
 
       if (isNaN(reponse)) {
-        quizResult.innerText = "Veuillez entrer un nombre.";
-      } else if (reponse === 56) {
-        quizResult.innerText = "✅ Bonne réponse !";
-      } else {
-        quizResult.innerText = "❌ Mauvaise réponse. La bonne réponse est 56.";
+        feedback.innerText = "⛔ Entrez un nombre.";
+        return;
       }
+
+      if (reponse === bonneReponse) {
+        feedback.innerText = "✅ Bonne réponse !";
+        score++;
+        bonnes++;
+      } else {
+        feedback.innerText = `❌ Faux. C'était ${bonneReponse}.`;
+        mauvaises++;
+      }
+
+      updateAffichageScore();
     }
 
-    function multiplier() {
-      const n1 = parseInt(document.getElementById('num1').value);
-      const n2 = parseInt(document.getElementById('num2').value);
-      const resultDiv = document.getElementById('result');
-
-      if (isNaN(n1) || isNaN(n2)) {
-        resultDiv.innerText = "Veuillez entrer deux nombres.";
-      } else if (n1 < 1 || n1 > 10 || n2 < 1 || n2 > 10) {
-        resultDiv.innerText = "Les nombres doivent être entre 1 et 10.";
-      } else {
-        resultDiv.innerText = `Résultat : ${n1} x ${n2} = ${n1 * n2}`;
-      }
+    function updateAffichageScore() {
+      document.getElementById('score').innerText = score;
+      document.getElementById('bonnes').innerText = bonnes;
+      document.getElementById('mauvaises').innerText = mauvaises;
     }
 
-    function genererTable() {
-      const table = document.getElementById('table-multiplication');
-      let html = "<tr><th>x</th>";
-      for (let i = 1; i <= 10; i++) {
-        html += `<th>${i}</th>`;
-      }
-      html += "</tr>";
+    function startChrono() {
+      stopChrono();
+      timerInterval = setInterval(() => {
+        chrono--;
+        document.getElementById('chrono').innerText = `⏳ Temps restant : ${chrono} sec`;
 
-      for (let i = 1; i <= 10; i++) {
-        html += `<tr><th>${i}</th>`;
-        for (let j = 1; j <= 10; j++) {
-          html += `<td>${i * j}</td>`;
+        if (chrono <= 0) {
+          stopChrono();
+          finDuJeu();
         }
-        html += "</tr>";
-      }
-
-      table.innerHTML = html;
+      }, 1000);
     }
 
-    window.onload = genererTable;
+    function stopChrono() {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+
+    function finDuJeu() {
+      partieEnCours = false;
+      document.getElementById('feedback').innerText = "⏱️ Temps écoulé ! Partie terminée.";
+      document.getElementById('user-answer').disabled = true;
+      document.getElementById('btn-verifier').disabled = true;
+      document.getElementById('btn-nouvelle').disabled = true;
+    }
   </script>
 </body>
 </html>
