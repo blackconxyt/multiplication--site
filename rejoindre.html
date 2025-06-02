@@ -6,7 +6,6 @@
   <title>Rejoindre une Partie</title>
   <link rel="icon" href="favicon.ico" />
   <style>
-    /* Même style que le jeu (copié depuis index.html) */
     body {
       font-family: Arial, sans-serif;
       margin:0; padding:0;
@@ -113,7 +112,6 @@
     const joinFeedback = document.getElementById('joinFeedback');
     const toggleModeBtn = document.getElementById('toggleModeBtn');
 
-    // Mode sombre clair
     function setDarkMode(dark) {
       if(dark){
         document.body.classList.add('dark');
@@ -123,6 +121,7 @@
         localStorage.setItem('darkMode', 'false');
       }
     }
+
     const savedMode = localStorage.getItem('darkMode');
     setDarkMode(savedMode === 'true');
     toggleModeBtn.addEventListener('click', () => {
@@ -141,7 +140,6 @@
       if(snapshot.exists()){
         try {
           await auth.signInAnonymously();
-          // Redirige vers page jeu en multijoueur
           window.location.href = `index.html?gameId=${gameId}`;
         } catch(e) {
           joinFeedback.textContent = "Erreur de connexion : " + e.message;
