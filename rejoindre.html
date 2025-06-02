@@ -3,76 +3,94 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Rejoindre une partie</title>
+  <title>Rejoindre une Partie</title>
+  <link rel="icon" href="favicon.ico" />
   <style>
+    /* Même style que le jeu (copié depuis index.html) */
     body {
       font-family: Arial, sans-serif;
-      background-color: #f0f0f0;
-      color: #000;
-      margin: 0;
-      padding: 0;
+      margin:0; padding:0;
+      background: #f0f0f0;
+      transition: background-color 0.3s;
+      color: #111;
     }
     body.dark {
-      background-color: #121212;
-      color: #fff;
+      background: #121212;
+      color: #eee;
     }
     .container {
-      max-width: 400px;
-      margin: 50px auto;
+      max-width: 450px;
+      margin: 40px auto;
       padding: 20px;
-      background-color: #fff;
+      background: #fff;
       border: 3px solid black;
       border-radius: 10px;
+      box-shadow: 0 0 12px #aaa;
+      transition: border-color 0.3s, background-color 0.3s;
     }
     body.dark .container {
-      background-color: #1e1e1e;
+      background: #1e1e1e;
       border-color: red;
-    }
-    h2 {
-      text-align: center;
-    }
-    input {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      font-size: 16px;
-      box-sizing: border-box;
+      box-shadow: 0 0 12px red;
     }
     button {
-      width: 100%;
-      padding: 10px;
       margin-top: 20px;
-      font-size: 16px;
-      background-color: #28a745;
-      color: white;
-      border: none;
-      border-radius: 5px;
+      padding: 10px 15px;
+      font-size: 1em;
       cursor: pointer;
+      border-radius: 5px;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      width: 100%;
+      transition: background-color 0.3s;
     }
     button:hover {
-      background-color: #1e7e34;
+      background-color: #0056b3;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      margin-top: 6px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      font-size: 1em;
     }
     #toggleModeBtn {
+      width: auto;
+      margin: 10px auto 30px;
       display: block;
-      margin: 10px auto;
-      padding: 8px 16px;
       background-color: #444;
-      color: #fff;
+      color: white;
       border: none;
       border-radius: 20px;
+      padding: 8px 20px;
       cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    #toggleModeBtn:hover {
+      background-color: #222;
     }
   </style>
   <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-database-compat.js"></script>
 </head>
 <body>
   <div class="container">
-    <h2>Rejoindre une partie</h2>
-    <button id="toggleModeBtn">🌗 Mode sombre</button>
-    <input type="text" id="gameId" placeholder="Entrez l'ID de la partie" />
-    <button onclick="rejoindrePartie()">Rejoindre</button>
-    <div id="feedback" style="margin-top: 10px; color: red;"></div>
+    <h1>Rejoindre une Partie</h1>
+    <button id="toggleModeBtn">Mode Sombre / Clair</button>
+
+    <label for="gameIdJoin">ID Partie</label>
+    <input type="text" id="gameIdJoin" placeholder="Entrez l'ID de la partie" />
+    <button id="joinBtn">Rejoindre</button>
+
+    <div id="joinFeedback" style="color:red; margin-top: 10px; min-height: 20px;"></div>
+
+    <p style="text-align:center; margin-top:20px;">
+      <a href="index.html">← Retour</a>
+    </p>
   </div>
 
   <script>
@@ -83,39 +101,55 @@
       projectId: "bghj-c5fa8",
       storageBucket: "bghj-c5fa8.appspot.com",
       messagingSenderId: "364930076964",
-      appId: "1:364930076964:web:0f4f293ad40de2b680a3b1"
+      appId: "1:364930076964:web:0f4f293ad40de2b680a3b1",
+      measurementId: "G-8PRM7DQZCQ"
     };
     firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
     const db = firebase.database();
 
-    const feedback = document.getElementById('feedback');
-    const gameIdInput = document.getElementById('gameId');
+    const gameIdJoin = document.getElementById('gameIdJoin');
+    const joinBtn = document.getElementById('joinBtn');
+    const joinFeedback = document.getElementById('joinFeedback');
+    const toggleModeBtn = document.getElementById('toggleModeBtn');
 
-    async function rejoindrePartie() {
-      const gameId = gameIdInput.value.trim();
-      if (!gameId) {
-        feedback.textContent = "Veuillez entrer un ID.";
+    // Mode sombre clair
+    function setDarkMode(dark) {
+      if(dark){
+        document.body.classList.add('dark');
+        localStorage.setItem('darkMode', 'true');
+      } else {
+        document.body.classList.remove('dark');
+        localStorage.setItem('darkMode', 'false');
+      }
+    }
+    const savedMode = localStorage.getItem('darkMode');
+    setDarkMode(savedMode === 'true');
+    toggleModeBtn.addEventListener('click', () => {
+      setDarkMode(!document.body.classList.contains('dark'));
+    });
+
+    joinBtn.addEventListener('click', async () => {
+      joinFeedback.textContent = '';
+      const gameId = gameIdJoin.value.trim();
+      if(!gameId){
+        joinFeedback.textContent = "Entrez l'ID de la partie.";
         return;
       }
 
-      const snapshot = await db.ref("parties/" + gameId).get();
-      if (!snapshot.exists()) {
-        feedback.textContent = "Cette partie n'existe pas.";
+      const snapshot = await db.ref('parties/' + gameId).get();
+      if(snapshot.exists()){
+        try {
+          await auth.signInAnonymously();
+          // Redirige vers page jeu en multijoueur
+          window.location.href = `index.html?gameId=${gameId}`;
+        } catch(e) {
+          joinFeedback.textContent = "Erreur de connexion : " + e.message;
+        }
       } else {
-        feedback.style.color = "green";
-        feedback.textContent = "Partie rejointe avec succès !";
+        joinFeedback.textContent = "Partie introuvable.";
       }
-    }
-
-    // Mode sombre
-    const toggleBtn = document.getElementById('toggleModeBtn');
-    toggleBtn.addEventListener('click', () => {
-      document.body.classList.toggle('dark');
-      localStorage.setItem('darkMode', document.body.classList.contains('dark'));
     });
-    if (localStorage.getItem('darkMode') === 'true') {
-      document.body.classList.add('dark');
-    }
   </script>
 </body>
 </html>
