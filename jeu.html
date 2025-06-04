@@ -1,228 +1,118 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Jeu de Multiplication</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" href="favicon.ico">
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 20px;
-      background-color: #f0f0f0;
-      transition: background-color 0.3s;
-      color: #000;
-    }
-    body.dark {
-      background-color: #121212;
-      color: #fff;
-    }
-    #container {
-      border: 3px solid black;
-      padding: 20px;
-      border-radius: 10px;
-      max-width: 500px;
-      margin: auto;
-    }
-    body.dark #container {
-      border-color: red;
-    }
-    input, select, button {
-      padding: 10px;
-      font-size: 1em;
-      margin: 10px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-    }
-    button {
-      background-color: #007bff;
-      color: white;
-      border: none;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    #logoutBtn {
-      background-color: red;
-      color: white;
-      float: right;
-      margin-bottom: 10px;
-    }
-    #toggleMode {
-      margin-bottom: 20px;
-    }
-    #summary {
-      margin-top: 20px;
-    }
-    img {
-      max-width: 100px;
-      margin-top: 10px;
-    }
-  </style>
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth-compat.js"></script>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="favicon.ico" />
 </head>
 <body>
-  <button id="logoutBtn">Déconnexion</button>
-  <h1>Jeu de Multiplication</h1>
-  <button id="toggleMode">Mode Sombre / Clair</button>
   <div id="container">
-    <label for="numQuestions">Nombre de questions :</label>
-    <select id="numQuestions">
-      <option value="5">5</option>
-      <option value="10" selected>10</option>
-      <option value="15">15</option>
-      <option value="20">20</option>
-    </select><br>
+    <h1>Jeu de Multiplication</h1>
+    <p id="score">Score : 0</p>
+    <p id="timer">Temps restant : 60s</p>
+    <div id="questionContainer">
+      <p id="question"></p>
+      <input type="number" id="answer" autocomplete="off" />
+      <button id="validerBtn" class="blue-button">Valider</button>
+    </div>
+  </div>
 
-    <label><input type="checkbox" id="grandDefi"> Grand Défi</label>
-    <label><input type="checkbox" id="grandNombre"> Grand Nombre</label><br>
-
-    <div id="question" style="font-size: 2em; margin: 20px;"></div>
-    <input type="number" id="answer" placeholder="Votre réponse">
-    <button id="submit">Valider</button>
-
-    <div id="score">Score : 0</div>
-    <div id="timer">Temps restant : ∞</div>
-    <div id="summary"></div>
+  <!-- Résumé final avec bouton Rejouer -->
+  <div id="resume" style="display: none;">
+    <p id="resumeText"></p>
+    <button id="rejouerBtn" class="blue-button">Rejouer</button>
   </div>
 
   <script>
-    // Firebase
-    const firebaseConfig = {
-      apiKey: "AIzaSyCwSUJwGsD5BNwuKr8DhhMVYdfMEiLi3Es",
-      authDomain: "bghj-c5fa8.firebaseapp.com",
-      projectId: "bghj-c5fa8",
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
+    let score = 0;
+    let indexQuestion = 0;
+    let bonnesReponses = 0;
+    let tempsRestant = 60;
+    let modeGrandDefi = false;
+    let modeGrandNombre = false;
+    let timerInterval;
 
-    // Auth check
-    auth.onAuthStateChanged(user => {
-      if (!user) window.location.href = "index.html";
+    const scoreElem = document.getElementById("score");
+    const questionElem = document.getElementById("question");
+    const answerElem = document.getElementById("answer");
+    const validerBtn = document.getElementById("validerBtn");
+    const timerElem = document.getElementById("timer");
+    const resumeElem = document.getElementById("resume");
+    const resumeText = document.getElementById("resumeText");
+    const rejouerBtn = document.getElementById("rejouerBtn");
+    const containerElem = document.getElementById("container");
+
+    function genererQuestion() {
+      const a = Math.floor(Math.random() * 10) + 1;
+      const b = Math.floor(Math.random() * 10) + 1;
+      questionElem.textContent = `${a} x ${b} = ?`;
+      questionElem.dataset.reponse = a * b;
+    }
+
+    function demarrerJeu() {
+      genererQuestion();
+      timerElem.textContent = `Temps restant : ${tempsRestant}s`;
+      timerInterval = setInterval(() => {
+        tempsRestant--;
+        timerElem.textContent = `Temps restant : ${tempsRestant}s`;
+        if (tempsRestant <= 0) {
+          finJeu();
+        }
+      }, 1000);
+    }
+
+    function finJeu() {
+      clearInterval(timerInterval);
+      containerElem.style.display = "none";
+      resumeElem.style.display = "block";
+      resumeText.textContent = `Tu as eu ${bonnesReponses} bonnes réponses. Score final : ${score}`;
+    }
+
+    validerBtn.addEventListener("click", () => {
+      const bonneReponse = parseInt(questionElem.dataset.reponse);
+      const reponseUtilisateur = parseInt(answerElem.value);
+      if (reponseUtilisateur === bonneReponse) {
+        score += 10;
+        bonnesReponses++;
+        scoreElem.textContent = `Score : ${score}`;
+      }
+      answerElem.value = "";
+      genererQuestion();
     });
 
-    document.getElementById("logoutBtn").onclick = () => {
-      auth.signOut().then(() => window.location.href = "index.html");
-    };
-
-    // Mode sombre
-    const toggleModeBtn = document.getElementById('toggleMode');
-    function setDarkMode(dark) {
-      if (dark) {
-        document.body.classList.add('dark');
-        localStorage.setItem('darkMode', 'true');
-      } else {
-        document.body.classList.remove('dark');
-        localStorage.setItem('darkMode', 'false');
+    answerElem.addEventListener("keyup", (e) => {
+      if (e.key === "Enter") {
+        validerBtn.click();
       }
-    }
-    setDarkMode(localStorage.getItem('darkMode') === 'true');
-    toggleModeBtn.onclick = () => setDarkMode(!document.body.classList.contains('dark'));
+    });
 
-    // Variables
-    const questionDiv = document.getElementById("question");
-    const answerInput = document.getElementById("answer");
-    const submitBtn = document.getElementById("submit");
-    const scoreDiv = document.getElementById("score");
-    const timerDiv = document.getElementById("timer");
-    const summaryDiv = document.getElementById("summary");
-
-    let questions = [], index = 0, score = 0, timer, timeLeft = 0;
-
-    function generateQuestions(count, grandNombre) {
-      questions = [];
-      for (let i = 0; i < count; i++) {
-        const a = grandNombre ? Math.floor(Math.random() * 90) + 10 : Math.floor(Math.random() * 10);
-        const b = grandNombre ? Math.floor(Math.random() * 90) + 10 : Math.floor(Math.random() * 10);
-        questions.push({ a, b });
-      }
-    }
-
-    function startGame() {
+    // ✅ Fonctionnalité Rejouer sans recharger la page
+    rejouerBtn.addEventListener("click", (e) => {
+      e.preventDefault();
       score = 0;
-      index = 0;
-      summaryDiv.innerHTML = "";
-      scoreDiv.textContent = "Score : 0";
+      indexQuestion = 0;
+      bonnesReponses = 0;
 
-      const grandDefi = document.getElementById("grandDefi").checked;
-      const grandNombre = document.getElementById("grandNombre").checked;
-      const count = parseInt(document.getElementById("numQuestions").value);
-
-      generateQuestions(count, grandNombre);
-      showQuestion();
-
-      clearInterval(timer);
-      if (grandDefi && grandNombre) {
-        timeLeft = 30;
-      } else if (grandDefi) {
-        timeLeft = 10;
+      // Temps selon les modes
+      if (modeGrandDefi) {
+        tempsRestant = modeGrandNombre ? 30 : 10;
       } else {
-        timeLeft = Infinity;
+        tempsRestant = 60;
       }
 
-      if (timeLeft !== Infinity) {
-        timerDiv.textContent = `Temps restant : ${timeLeft}s`;
-        timer = setInterval(() => {
-          timeLeft--;
-          timerDiv.textContent = `Temps restant : ${timeLeft}s`;
-          if (timeLeft <= 0) endGame();
-        }, 1000);
-      } else {
-        timerDiv.textContent = `Temps restant : ∞`;
-      }
-    }
+      scoreElem.textContent = "Score : 0";
+      resumeElem.style.display = "none";
+      containerElem.style.display = "block";
 
-    function showQuestion() {
-      const q = questions[index];
-      questionDiv.textContent = `${q.a} × ${q.b} = ?`;
-      answerInput.value = "";
-      answerInput.focus();
-    }
-
-    function checkAnswer() {
-      const q = questions[index];
-      const userAnswer = parseInt(answerInput.value);
-      if (userAnswer === q.a * q.b) score++;
-      index++;
-      if (index < questions.length && (timeLeft > 0 || timeLeft === Infinity)) {
-        showQuestion();
-      } else {
-        endGame();
-      }
-    }
-
-    function endGame() {
-      clearInterval(timer);
-      questionDiv.textContent = "Fin du jeu !";
-      answerInput.disabled = true;
-      submitBtn.disabled = true;
-      timerDiv.textContent = "";
-      scoreDiv.textContent = `Score final : ${score}/${questions.length}`;
-
-      let img = "";
-      if (score === questions.length) {
-        img = "🌟 Excellent !";
-      } else if (score >= questions.length * 0.7) {
-        img = "👍 Bien joué !";
-      } else {
-        img = "💡 Tu peux t'améliorer !";
-      }
-
-      summaryDiv.innerHTML = `
-        <p>${img}</p>
-        <button onclick="location.reload()">Rejouer</button>
-      `;
-    }
-
-    submitBtn.onclick = checkAnswer;
-    answerInput.addEventListener("keypress", e => {
-      if (e.key === "Enter") checkAnswer();
+      demarrerJeu();
     });
 
-    window.onload = startGame;
+    // 🔄 Lancer automatiquement au chargement de la page
+    window.addEventListener("load", () => {
+      demarrerJeu();
+    });
   </script>
 </body>
 </html>
