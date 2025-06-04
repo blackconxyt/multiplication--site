@@ -4,56 +4,170 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Jeu de Multiplication</title>
-  <link rel="stylesheet" href="style.css" />
-  <link rel="icon" href="favicon.ico" />
+  <link rel="stylesheet" href="style.css"/>
+  <link rel="icon" href="favicon.ico" type="image/x-icon"/>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      transition: background-color 0.3s, color 0.3s;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    .button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    .blue-button {
+      background-color: #007bff;
+      color: white;
+    }
+    .red-button {
+      background-color: #dc3545;
+      color: white;
+    }
+    #resume {
+      display: none;
+      margin-top: 20px;
+    }
+  </style>
 </head>
 <body>
+  <h1>Jeu de Multiplication</h1>
+
   <div id="container">
-    <h1>Jeu de Multiplication</h1>
+    <p id="question">Chargement...</p>
+    <input type="number" id="answer" placeholder="Votre réponse" />
+    <button class="button blue-button" id="submitBtn">Valider</button>
+
     <p id="score">Score : 0</p>
     <p id="timer">Temps restant : 60s</p>
-    <div id="questionContainer">
-      <p id="question"></p>
-      <input type="number" id="answer" autocomplete="off" />
-      <button id="validerBtn" class="blue-button">Valider</button>
-    </div>
   </div>
 
-  <!-- Résumé final avec bouton Rejouer -->
-  <div id="resume" style="display: none;">
-    <p id="resumeText"></p>
-    <button id="rejouerBtn" class="blue-button">Rejouer</button>
+  <div id="resume">
+    <h2>Résumé</h2>
+    <p id="resultatFinal"></p>
+    <button class="button blue-button" id="rejouerBtn">Rejouer</button>
   </div>
 
-  <script>
+  <br />
+
+  <button class="button blue-button" onclick="window.location.href='multijoueur.html'">Multijoueur</button>
+  <button class="button red-button" onclick="firebase.auth().signOut().then(() => window.location.href = 'index.html')">Déconnexion</button>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyA-tRUtRzPY7iCIAdJovRJ2PYAAEqQUuCw",
+      authDomain: "bghj-c5fa8.firebaseapp.com",
+      projectId: "bghj-c5fa8",
+      storageBucket: "bghj-c5fa8.appspot.com",
+      messagingSenderId: "626884158844",
+      appId: "1:626884158844:web:5247b0a6d103b2c9e4a1a6",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "index.html";
+      }
+    });
+
+    // VARIABLES
     let score = 0;
     let indexQuestion = 0;
     let bonnesReponses = 0;
-    let tempsRestant = 60;
-    let modeGrandDefi = false;
-    let modeGrandNombre = false;
     let timerInterval;
+    let tempsRestant = 60;
 
-    const scoreElem = document.getElementById("score");
-    const questionElem = document.getElementById("question");
-    const answerElem = document.getElementById("answer");
-    const validerBtn = document.getElementById("validerBtn");
-    const timerElem = document.getElementById("timer");
-    const resumeElem = document.getElementById("resume");
-    const resumeText = document.getElementById("resumeText");
-    const rejouerBtn = document.getElementById("rejouerBtn");
-    const containerElem = document.getElementById("container");
+    const modeGrandDefi = localStorage.getItem("modeGrandDefi") === "true";
+    const modeGrandNombre = localStorage.getItem("modeGrandNombre") === "true";
+    const nbQuestions = parseInt(localStorage.getItem("nbQuestions") || "10");
 
-    function genererQuestion() {
-      const a = Math.floor(Math.random() * 10) + 1;
-      const b = Math.floor(Math.random() * 10) + 1;
-      questionElem.textContent = `${a} x ${b} = ?`;
-      questionElem.dataset.reponse = a * b;
+    if (modeGrandDefi && modeGrandNombre) {
+      tempsRestant = 30;
+    } else if (modeGrandDefi) {
+      tempsRestant = 10;
     }
 
-    function demarrerJeu() {
-      genererQuestion();
+    const questionElem = document.getElementById("question");
+    const answerElem = document.getElementById("answer");
+    const scoreElem = document.getElementById("score");
+    const timerElem = document.getElementById("timer");
+    const resultatFinal = document.getElementById("resultatFinal");
+
+    let a, b;
+
+    function genererQuestion() {
+      if (indexQuestion >= nbQuestions && !modeGrandDefi && !modeGrandNombre) {
+        finJeu();
+        return;
+      }
+
+      a = Math.floor(Math.random() * (modeGrandNombre ? 100 : 10)) + 1;
+      b = Math.floor(Math.random() * (modeGrandNombre ? 100 : 10)) + 1;
+      questionElem.textContent = `Combien font ${a} x ${b} ?`;
+      answerElem.value = "";
+      answerElem.focus();
+    }
+
+    function verifierReponse() {
+      const reponse = parseInt(answerElem.value);
+      if (!isNaN(reponse)) {
+        if (reponse === a * b) {
+          score += 10;
+          bonnesReponses++;
+        }
+        indexQuestion++;
+        scoreElem.textContent = `Score : ${score}`;
+        genererQuestion();
+      }
+    }
+
+    function finJeu() {
+      clearInterval(timerInterval);
+      document.getElementById("container").style.display = "none";
+      document.getElementById("resume").style.display = "block";
+      resultatFinal.textContent = `Vous avez obtenu ${score} points avec ${bonnesReponses} bonnes réponses sur ${nbQuestions} questions.`;
+    }
+
+    document.getElementById("submitBtn").addEventListener("click", verifierReponse);
+    answerElem.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") verifierReponse();
+    });
+
+    // Bouton rejouer (sans recharger la page)
+    document.getElementById("rejouerBtn").addEventListener("click", (e) => {
+      e.preventDefault();
+      score = 0;
+      indexQuestion = 0;
+      bonnesReponses = 0;
+
+      if (modeGrandDefi && modeGrandNombre) {
+        tempsRestant = 30;
+      } else if (modeGrandDefi) {
+        tempsRestant = 10;
+      } else {
+        tempsRestant = 60;
+      }
+
+      scoreElem.textContent = "Score : 0";
       timerElem.textContent = `Temps restant : ${tempsRestant}s`;
+      document.getElementById("resume").style.display = "none";
+      document.getElementById("container").style.display = "block";
+
+      clearInterval(timerInterval);
+      genererQuestion();
       timerInterval = setInterval(() => {
         tempsRestant--;
         timerElem.textContent = `Temps restant : ${tempsRestant}s`;
@@ -61,58 +175,17 @@
           finJeu();
         }
       }, 1000);
-    }
+    });
 
-    function finJeu() {
-      clearInterval(timerInterval);
-      containerElem.style.display = "none";
-      resumeElem.style.display = "block";
-      resumeText.textContent = `Tu as eu ${bonnesReponses} bonnes réponses. Score final : ${score}`;
-    }
-
-    validerBtn.addEventListener("click", () => {
-      const bonneReponse = parseInt(questionElem.dataset.reponse);
-      const reponseUtilisateur = parseInt(answerElem.value);
-      if (reponseUtilisateur === bonneReponse) {
-        score += 10;
-        bonnesReponses++;
-        scoreElem.textContent = `Score : ${score}`;
+    // Démarrage initial
+    genererQuestion();
+    timerInterval = setInterval(() => {
+      tempsRestant--;
+      timerElem.textContent = `Temps restant : ${tempsRestant}s`;
+      if (tempsRestant <= 0) {
+        finJeu();
       }
-      answerElem.value = "";
-      genererQuestion();
-    });
-
-    answerElem.addEventListener("keyup", (e) => {
-      if (e.key === "Enter") {
-        validerBtn.click();
-      }
-    });
-
-    // ✅ Fonctionnalité Rejouer sans recharger la page
-    rejouerBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      score = 0;
-      indexQuestion = 0;
-      bonnesReponses = 0;
-
-      // Temps selon les modes
-      if (modeGrandDefi) {
-        tempsRestant = modeGrandNombre ? 30 : 10;
-      } else {
-        tempsRestant = 60;
-      }
-
-      scoreElem.textContent = "Score : 0";
-      resumeElem.style.display = "none";
-      containerElem.style.display = "block";
-
-      demarrerJeu();
-    });
-
-    // 🔄 Lancer automatiquement au chargement de la page
-    window.addEventListener("load", () => {
-      demarrerJeu();
-    });
+    }, 1000);
   </script>
 </body>
 </html>
