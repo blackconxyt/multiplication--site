@@ -1,56 +1,21 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Jeu de Multiplication</title>
-  <link rel="stylesheet" href="style.css"/>
-  <link rel="icon" href="favicon.ico" type="image/x-icon"/>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      transition: background-color 0.3s, color 0.3s;
-      margin: 0;
-      padding: 20px;
-      text-align: center;
-    }
-    .button {
-      padding: 10px 20px;
-      margin: 10px;
-      font-size: 16px;
-      border: none;
-      cursor: pointer;
-      border-radius: 5px;
-    }
-    .blue-button {
-      background-color: #007bff;
-      color: white;
-    }
-    .red-button {
-      background-color: #dc3545;
-      color: white;
-    }
-    #resume {
-      display: none;
-      margin-top: 20px;
-    }
-  </style>
-</head>
+<!-- Remplace le <body> entier par ceci -->
+
 <body>
   <h1>Jeu de Multiplication</h1>
 
-  <div id="container">
+  <div id="startScreen">
+    <button class="button blue-button" id="startBtn">Lancer une partie</button>
+  </div>
+
+  <div id="container" style="display: none;">
     <p id="question">Chargement...</p>
     <input type="number" id="answer" placeholder="Votre réponse" />
     <button class="button blue-button" id="submitBtn">Valider</button>
-
     <p id="score">Score : 0</p>
     <p id="timer">Temps restant : 60s</p>
   </div>
 
-  <div id="resume">
+  <div id="resume" style="display: none;">
     <h2>Résumé</h2>
     <p id="resultatFinal"></p>
     <button class="button blue-button" id="rejouerBtn">Rejouer</button>
@@ -83,7 +48,7 @@
       }
     });
 
-    // VARIABLES
+    // --- Variables
     let score = 0;
     let indexQuestion = 0;
     let bonnesReponses = 0;
@@ -105,6 +70,11 @@
     const scoreElem = document.getElementById("score");
     const timerElem = document.getElementById("timer");
     const resultatFinal = document.getElementById("resultatFinal");
+
+    const startBtn = document.getElementById("startBtn");
+    const startScreen = document.getElementById("startScreen");
+    const container = document.getElementById("container");
+    const resume = document.getElementById("resume");
 
     let a, b;
 
@@ -136,17 +106,33 @@
 
     function finJeu() {
       clearInterval(timerInterval);
-      document.getElementById("container").style.display = "none";
-      document.getElementById("resume").style.display = "block";
+      container.style.display = "none";
+      resume.style.display = "block";
       resultatFinal.textContent = `Vous avez obtenu ${score} points avec ${bonnesReponses} bonnes réponses sur ${nbQuestions} questions.`;
     }
 
+    function lancerJeu() {
+      startScreen.style.display = "none";
+      container.style.display = "block";
+
+      genererQuestion();
+      timerElem.textContent = `Temps restant : ${tempsRestant}s`;
+
+      timerInterval = setInterval(() => {
+        tempsRestant--;
+        timerElem.textContent = `Temps restant : ${tempsRestant}s`;
+        if (tempsRestant <= 0) {
+          finJeu();
+        }
+      }, 1000);
+    }
+
+    startBtn.addEventListener("click", lancerJeu);
     document.getElementById("submitBtn").addEventListener("click", verifierReponse);
     answerElem.addEventListener("keydown", (e) => {
       if (e.key === "Enter") verifierReponse();
     });
 
-    // Bouton rejouer (sans recharger la page)
     document.getElementById("rejouerBtn").addEventListener("click", (e) => {
       e.preventDefault();
       score = 0;
@@ -163,8 +149,8 @@
 
       scoreElem.textContent = "Score : 0";
       timerElem.textContent = `Temps restant : ${tempsRestant}s`;
-      document.getElementById("resume").style.display = "none";
-      document.getElementById("container").style.display = "block";
+      resume.style.display = "none";
+      container.style.display = "block";
 
       clearInterval(timerInterval);
       genererQuestion();
@@ -176,16 +162,5 @@
         }
       }, 1000);
     });
-
-    // Démarrage initial
-    genererQuestion();
-    timerInterval = setInterval(() => {
-      tempsRestant--;
-      timerElem.textContent = `Temps restant : ${tempsRestant}s`;
-      if (tempsRestant <= 0) {
-        finJeu();
-      }
-    }, 1000);
   </script>
 </body>
-</html>
