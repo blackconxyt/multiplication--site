@@ -107,6 +107,20 @@
       width: auto;
       padding: 8px 15px;
     }
+    /* Bouton Recommencer */
+    #recommencerBtn {
+      background-color: #d9534f; /* rouge */
+      color: white;
+      padding: 6px 10px; /* plus petit */
+      font-size: 0.9em;
+      margin-top: 10px;
+      width: auto;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #recommencerBtn:hover {
+      background-color: #c9302c;
+    }
   </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
@@ -150,8 +164,7 @@
     <p id="question" style="font-weight:bold; margin-top:20px;"></p>
     <input type="number" id="userAnswer" placeholder="Votre réponse" autocomplete="off" />
     <button id="verifierBtn">Vérifier</button>
-    <!-- BOUTON RECOMMENCER AJOUTÉ -->
-    <button id="recommencerBtn">Recommencer</button>
+    <button id="recommencerBtn">Recommencer</button> <!-- Nouveau bouton -->
 
     <p id="feedback"></p>
     <p id="chrono"></p>
@@ -202,6 +215,7 @@
     const loginFeedback = document.getElementById('loginFeedback');
     const toggleModeBtn = document.getElementById('toggleModeBtn');
     const verifierBtn = document.getElementById('verifierBtn');
+    const recommencerBtn = document.getElementById('recommencerBtn'); // nouveau
     const userAnswer = document.getElementById('userAnswer');
     const questionText = document.getElementById('question');
     const feedbackText = document.getElementById('feedback');
@@ -213,8 +227,6 @@
     const modeGrandDefiCheckbox = document.getElementById('modeGrandDefi');
     const modeGrandNombreCheckbox = document.getElementById('modeGrandNombre');
     const logoutBtn = document.getElementById('logoutBtn');
-    // --- BOUTON RECOMMENCER ---
-    const recommencerBtn = document.getElementById('recommencerBtn');
 
     // --- Mode sombre / clair ---
     function updateMode() {
@@ -392,14 +404,12 @@
     }
 
     verifierBtn.addEventListener('click', verifierReponse);
+    recommencerBtn.addEventListener('click', resetGame); // Bouton Recommencer
     userAnswer.addEventListener('keydown', e => {
       if(e.key === 'Enter'){
         verifierReponse();
       }
     });
-
-    // --- BOUTON RECOMMENCER FONCTIONNEL ---
-    recommencerBtn.addEventListener('click', resetGame);
 
     function endGame(){
       partieEnCours = true;
@@ -413,7 +423,6 @@
       loginContainer.style.display = 'none';
       gameContainer.style.display = 'block';
       resetGame();
-
       await db.ref('parties/' + gameId).set({
         createdBy: auth.currentUser.uid,
         createdAt: Date.now(),
