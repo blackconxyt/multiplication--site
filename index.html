@@ -107,21 +107,6 @@
       width: auto;
       padding: 8px 15px;
     }
-    /* Nouveau bouton mode sombre clair dans jeu */
-    #toggleModeBtnInGame {
-      background-color: #444;
-      color: white;
-      border: none;
-      border-radius: 20px;
-      padding: 8px 20px;
-      cursor: pointer;
-      transition: background-color 0.3s;
-      width: auto;
-      margin-top: 10px;
-    }
-    #toggleModeBtnInGame:hover {
-      background-color: #222;
-    }
   </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
@@ -155,8 +140,6 @@
 
   <div class="container" id="game" >
     <h2>Jeu de multiplication</h2>
-    <button id="toggleModeBtnInGame">Changer mode clair/sombre</button> <!-- bouton ajouté -->
-
     <div>
       <label><input type="checkbox" id="modeGrandDefi" /> Mode Grand Défi (10s)</label><br/>
       <label><input type="checkbox" id="modeGrandNombre" /> Mode Grand Nombre (infini ou 30s combiné)</label><br/>
@@ -216,7 +199,6 @@
     const gameIdJoin = document.getElementById('gameIdJoin');
     const loginFeedback = document.getElementById('loginFeedback');
     const toggleModeBtn = document.getElementById('toggleModeBtn');
-    const toggleModeBtnInGame = document.getElementById('toggleModeBtnInGame'); // nouveau
     const verifierBtn = document.getElementById('verifierBtn');
     const userAnswer = document.getElementById('userAnswer');
     const questionText = document.getElementById('question');
@@ -225,33 +207,35 @@
     const scoreText = document.getElementById('score');
     const bonnesText = document.getElementById('bonnes');
     const mauvaisesText = document.getElementById('mauvaises');
+    const nombreQuestionsInput = document.getElementById('nombreQuestions');
     const modeGrandDefiCheckbox = document.getElementById('modeGrandDefi');
     const modeGrandNombreCheckbox = document.getElementById('modeGrandNombre');
-    const nombreQuestionsInput = document.getElementById('nombreQuestions');
     const logoutBtn = document.getElementById('logoutBtn');
 
-    // --- Gestion mode sombre/clair ---
-    function setDarkMode(dark) {
-      if(dark){
-        document.body.classList.add('dark');
-        localStorage.setItem('darkMode', 'true');
-      } else {
+    // --- Mode sombre / clair ---
+    function updateMode() {
+      if(document.body.classList.contains('dark')){
         document.body.classList.remove('dark');
-        localStorage.setItem('darkMode', 'false');
+      } else {
+        document.body.classList.add('dark');
       }
     }
-    // Charge mode au démarrage
-    const savedMode = localStorage.getItem('darkMode');
-    setDarkMode(savedMode === 'true');
-
     toggleModeBtn.addEventListener('click', () => {
-      setDarkMode(!document.body.classList.contains('dark'));
+      updateMode();
+      updateBorder();
     });
-    toggleModeBtnInGame.addEventListener('click', () => {
-      setDarkMode(!document.body.classList.contains('dark'));
-    });
+    function updateBorder(){
+      if(document.body.classList.contains('dark')){
+        gameContainer.style.borderColor = 'red';
+        loginContainer.style.borderColor = 'red';
+      } else {
+        gameContainer.style.borderColor = 'black';
+        loginContainer.style.borderColor = 'black';
+      }
+    }
+    updateBorder();
 
-    // --- Auth ---
+    // --- Auth Firebase ---
     auth.onAuthStateChanged(user => {
       if(user){
         loginContainer.style.display = 'none';
@@ -340,8 +324,10 @@
       questionsMax = parseInt(nombreQuestionsInput.value) || 10;
 
       if(modeGrandDefi && modeGrandNombre){
+        // Mode combiné : 30 secondes
         tempsRestant = 30;
       } else if(modeGrandNombre){
+        // Temps infini = pas de timer
         tempsRestant = 0;
       } else if(modeGrandDefi){
         tempsRestant = 10;
@@ -349,17 +335,18 @@
         tempsRestant = 0;
       }
 
+      // Choix nombres selon mode grand nombre
       if(modeGrandNombre){
-        nombre1 = Math.floor(Math.random() * 90) + 10;
+        nombre1 = Math.floor(Math.random() * 90) + 10; // 10 à 99
         nombre2 = Math.floor(Math.random() * 90) + 10;
       } else {
         nombre1 = Math.floor(Math.random() * 9) + 1;
         nombre2 = Math.floor(Math.random() * 9) + 1;
       }
-      questionText.textContent = Combien font ${nombre1} × ${nombre2} ?;
+      questionText.textContent = `Combien font ${nombre1} × ${nombre2} ?`;
 
       if(tempsRestant > 0){
-        chronoText.textContent = Temps restant : ${tempsRestant}s;
+        chronoText.textContent = `Temps restant : ${tempsRestant}s`;
         if(timerInterval) clearInterval(timerInterval);
         timerInterval = setInterval(() => {
           tempsRestant--;
@@ -368,7 +355,7 @@
             feedbackText.textContent = "Temps écoulé ! Partie terminée.";
             endGame();
           } else {
-            chronoText.textContent = Temps restant : ${tempsRestant}s;
+            chronoText.textContent = `Temps restant : ${tempsRestant}s`;
           }
         }, 1000);
       } else {
@@ -378,7 +365,7 @@
     }
 
     function verifierReponse(){
-      if(partieEnCours) return;
+      if(partieEnCours) return; // éviter double validation
       const reponse = parseInt(userAnswer.value.trim());
       if(isNaN(reponse)){
         feedbackText.textContent = "Entrez une réponse valide.";
@@ -393,7 +380,7 @@
         feedbackText.textContent = "Correct ! 🎉";
       } else {
         mauvaises++;
-        feedbackText.textContent = Faux ! La bonne réponse était ${bonneReponse}.;
+        feedbackText.textContent = `Faux ! La bonne réponse était ${bonneReponse}.`;
       }
       scoreText.textContent = score;
       bonnesText.textContent = bonnes;
@@ -415,7 +402,7 @@
 
     function endGame(){
       partieEnCours = true;
-      feedbackText.textContent +=  Partie terminée ! Score final : ${score}/${questionsMax}.;
+      feedbackText.textContent += ` Partie terminée ! Score final : ${score}/${questionsMax}.`;
       chronoText.textContent = '';
       if(timerInterval) clearInterval(timerInterval);
     }
@@ -427,16 +414,12 @@
       gameContainer.style.display = 'block';
       resetGame();
 
-      // Créer une entrée dans la DB pour la partie si elle n'existe pas déjà
-      const partieRef = db.ref('parties/' + gameId);
-      const snapshot = await partieRef.get();
-      if(!snapshot.exists()){
-        await partieRef.set({
-          createdBy: auth.currentUser.uid,
-          createdAt: Date.now(),
-          status: "active",
-        });
-      }
+      // Créer une entrée dans la DB pour la partie
+      await db.ref('parties/' + gameId).set({
+        createdBy: auth.currentUser.uid,
+        createdAt: Date.now(),
+        status: "active",
+      });
     }
   </script>
 </body>
