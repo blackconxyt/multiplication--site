@@ -150,6 +150,8 @@
     <p id="question" style="font-weight:bold; margin-top:20px;"></p>
     <input type="number" id="userAnswer" placeholder="Votre réponse" autocomplete="off" />
     <button id="verifierBtn">Vérifier</button>
+    <!-- BOUTON RECOMMENCER AJOUTÉ -->
+    <button id="recommencerBtn">Recommencer</button>
 
     <p id="feedback"></p>
     <p id="chrono"></p>
@@ -211,6 +213,7 @@
     const modeGrandDefiCheckbox = document.getElementById('modeGrandDefi');
     const modeGrandNombreCheckbox = document.getElementById('modeGrandNombre');
     const logoutBtn = document.getElementById('logoutBtn');
+    const recommencerBtn = document.getElementById('recommencerBtn'); // AJOUTÉ
 
     // --- Mode sombre / clair ---
     function updateMode() {
@@ -262,7 +265,6 @@
       } catch(e) {
         if(e.code === 'auth/email-already-in-use'){
           loginFeedback.textContent = "Email déjà utilisé. Connectez-vous plutôt.";
-          // On essaie de connecter
           try {
             await auth.signInWithEmailAndPassword(email, password);
           } catch(err){
@@ -281,10 +283,8 @@
         loginFeedback.textContent = "Entrez l'ID de la partie à rejoindre.";
         return;
       }
-      // On vérifie si la partie existe dans la DB
       const snapshot = await db.ref('parties/' + gameId).get();
       if(snapshot.exists()){
-        // On se connecte anonymement puis on rejoint
         try {
           await auth.signInAnonymously();
           currentGameId = gameId;
@@ -324,10 +324,8 @@
       questionsMax = parseInt(nombreQuestionsInput.value) || 10;
 
       if(modeGrandDefi && modeGrandNombre){
-        // Mode combiné : 30 secondes
         tempsRestant = 30;
       } else if(modeGrandNombre){
-        // Temps infini = pas de timer
         tempsRestant = 0;
       } else if(modeGrandDefi){
         tempsRestant = 10;
@@ -335,9 +333,8 @@
         tempsRestant = 0;
       }
 
-      // Choix nombres selon mode grand nombre
       if(modeGrandNombre){
-        nombre1 = Math.floor(Math.random() * 90) + 10; // 10 à 99
+        nombre1 = Math.floor(Math.random() * 90) + 10;
         nombre2 = Math.floor(Math.random() * 90) + 10;
       } else {
         nombre1 = Math.floor(Math.random() * 9) + 1;
@@ -365,7 +362,7 @@
     }
 
     function verifierReponse(){
-      if(partieEnCours) return; // éviter double validation
+      if(partieEnCours) return;
       const reponse = parseInt(userAnswer.value.trim());
       if(isNaN(reponse)){
         feedbackText.textContent = "Entrez une réponse valide.";
@@ -400,6 +397,9 @@
       }
     });
 
+    // --- BOUTON RECOMMENCER ---
+    recommencerBtn.addEventListener('click', resetGame);
+
     function endGame(){
       partieEnCours = true;
       feedbackText.textContent += ` Partie terminée ! Score final : ${score}/${questionsMax}.`;
@@ -407,14 +407,12 @@
       if(timerInterval) clearInterval(timerInterval);
     }
 
-    // --- Mode multi joueur basique (crée une partie) ---
     async function startGameMulti(gameId){
       currentGameId = gameId;
       loginContainer.style.display = 'none';
       gameContainer.style.display = 'block';
       resetGame();
 
-      // Créer une entrée dans la DB pour la partie
       await db.ref('parties/' + gameId).set({
         createdBy: auth.currentUser.uid,
         createdAt: Date.now(),
