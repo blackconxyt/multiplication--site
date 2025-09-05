@@ -213,7 +213,8 @@
     const modeGrandDefiCheckbox = document.getElementById('modeGrandDefi');
     const modeGrandNombreCheckbox = document.getElementById('modeGrandNombre');
     const logoutBtn = document.getElementById('logoutBtn');
-    const recommencerBtn = document.getElementById('recommencerBtn'); // AJOUTÉ
+    // --- BOUTON RECOMMENCER ---
+    const recommencerBtn = document.getElementById('recommencerBtn');
 
     // --- Mode sombre / clair ---
     function updateMode() {
@@ -397,7 +398,7 @@
       }
     });
 
-    // --- BOUTON RECOMMENCER ---
+    // --- BOUTON RECOMMENCER FONCTIONNEL ---
     recommencerBtn.addEventListener('click', resetGame);
 
     function endGame(){
