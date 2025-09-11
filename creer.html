@@ -1,125 +1,138 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Créer une partie</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Créer / Gérer un compte</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f0f0f0;
-      color: #000;
+      background: #f0f0f0;
       margin: 0;
-      padding: 0;
-    }
-    body.dark {
-      background-color: #121212;
-      color: #fff;
+      padding: 20px;
+      text-align: center;
     }
     .container {
       max-width: 400px;
-      margin: 50px auto;
+      margin: auto;
       padding: 20px;
-      background-color: #fff;
-      border: 3px solid black;
-      border-radius: 10px;
-    }
-    body.dark .container {
-      background-color: #1e1e1e;
-      border-color: red;
-    }
-    h2 {
-      text-align: center;
+      background: white;
+      border: 2px solid black;
+      border-radius: 8px;
     }
     input {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      font-size: 16px;
-      box-sizing: border-box;
+      display: block;
+      width: 90%;
+      margin: 10px auto;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
     }
-    button {
-      width: 100%;
+    .button {
       padding: 10px;
-      margin-top: 20px;
-      font-size: 16px;
-      background-color: #007bff;
-      color: white;
+      margin: 8px;
       border: none;
       border-radius: 5px;
+      font-size: 16px;
       cursor: pointer;
+      width: 90%;
     }
-    button:hover {
+    .blue-button {
+      background-color: #007bff;
+      color: white;
+    }
+    .blue-button:hover {
       background-color: #0056b3;
     }
-    #toggleModeBtn {
-      display: block;
-      margin: 10px auto;
-      padding: 8px 16px;
-      background-color: #444;
-      color: #fff;
-      border: none;
-      border-radius: 20px;
-      cursor: pointer;
+    .red-button {
+      background-color: #dc3545;
+      color: white;
+    }
+    .red-button:hover {
+      background-color: #a71d2a;
     }
   </style>
+
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth-compat.js"></script>
 </head>
 <body>
   <div class="container">
-    <h2>Créer une partie</h2>
-    <button id="toggleModeBtn">🌗 Mode sombre</button>
-    <input type="text" id="gameId" placeholder="Entrez un ID de partie" />
-    <button onclick="creerPartie()">Créer</button>
-    <div id="feedback" style="margin-top: 10px; color: red;"></div>
+    <h1>Créer / Gérer un compte</h1>
+
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Mot de passe">
+
+    <button class="button blue-button" id="createBtn">Créer un compte</button>
+    <button class="button blue-button" id="loginBtn">Se connecter</button>
+    <button class="button red-button" id="deleteBtn">Supprimer mon compte</button>
+    <button class="button red-button" id="logoutBtn">Déconnexion</button>
+
+    <p id="feedback" style="color:red; margin-top:10px;"></p>
   </div>
 
   <script>
+    // --- Config Firebase ---
     const firebaseConfig = {
       apiKey: "AIzaSyCwSUJwGsD5BNwuKr8DhhMVYdfMEiLi3Es",
       authDomain: "bghj-c5fa8.firebaseapp.com",
-      databaseURL: "https://bghj-c5fa8-default-rtdb.firebaseio.com",
       projectId: "bghj-c5fa8",
       storageBucket: "bghj-c5fa8.appspot.com",
       messagingSenderId: "364930076964",
-      appId: "1:364930076964:web:0f4f293ad40de2b680a3b1"
+      appId: "1:364930076964:web:0f4f293ad40de2b680a3b1",
     };
     firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    const auth = firebase.auth();
 
-    const feedback = document.getElementById('feedback');
-    const gameIdInput = document.getElementById('gameId');
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const feedback = document.getElementById("feedback");
 
-    async function creerPartie() {
-      const gameId = gameIdInput.value.trim();
-      if (!gameId) {
-        feedback.textContent = "Veuillez entrer un ID de partie.";
-        return;
+    // Créer un compte
+    document.getElementById("createBtn").addEventListener("click", async () => {
+      try {
+        await auth.createUserWithEmailAndPassword(emailInput.value, passwordInput.value);
+        feedback.textContent = "✅ Compte créé avec succès !";
+      } catch (err) {
+        feedback.textContent = "❌ " + err.message;
       }
-
-      const snapshot = await db.ref("parties/" + gameId).get();
-      if (snapshot.exists()) {
-        feedback.textContent = "Cet ID existe déjà.";
-      } else {
-        await db.ref("parties/" + gameId).set({
-          createdAt: Date.now(),
-          status: "active"
-        });
-        feedback.style.color = "green";
-        feedback.textContent = "Partie créée avec succès !";
-      }
-    }
-
-    // Mode sombre
-    const toggleBtn = document.getElementById('toggleModeBtn');
-    toggleBtn.addEventListener('click', () => {
-      document.body.classList.toggle('dark');
-      localStorage.setItem('darkMode', document.body.classList.contains('dark'));
     });
-    if (localStorage.getItem('darkMode') === 'true') {
-      document.body.classList.add('dark');
-    }
+
+    // Connexion
+    document.getElementById("loginBtn").addEventListener("click", async () => {
+      try {
+        await auth.signInWithEmailAndPassword(emailInput.value, passwordInput.value);
+        feedback.textContent = "✅ Connecté avec succès !";
+      } catch (err) {
+        feedback.textContent = "❌ " + err.message;
+      }
+    });
+
+    // Supprimer compte
+    document.getElementById("deleteBtn").addEventListener("click", async () => {
+      const user = auth.currentUser;
+      if (user) {
+        try {
+          await user.delete();
+          feedback.textContent = "✅ Compte supprimé avec succès.";
+        } catch (err) {
+          feedback.textContent = "❌ " + err.message + " (Reconnectez-vous si besoin)";
+        }
+      } else {
+        feedback.textContent = "❌ Aucun utilisateur connecté.";
+      }
+    });
+
+    // Déconnexion
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      try {
+        await auth.signOut();
+        feedback.textContent = "✅ Déconnecté avec succès.";
+      } catch (err) {
+        feedback.textContent = "❌ " + err.message;
+      }
+    });
   </script>
 </body>
 </html>
