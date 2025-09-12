@@ -122,10 +122,6 @@
       background-color: #c9302c;
     }
   </style>
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-database-compat.js"></script>
 </head>
 <body>
   <div class="container" id="loginContainer">
@@ -134,7 +130,7 @@
 
     <div class="flex-row">
       <div class="half-width" style="border-right:1px solid #ccc; padding-right:10px;">
-        <h3>Créer une partie</h3>
+        <h3>Créer un compte</h3>
         <label for="emailCreate">Email</label>
         <input type="email" id="emailCreate" placeholder="email@example.com" />
         <label for="passwordCreate">Mot de passe</label>
@@ -142,10 +138,12 @@
         <button id="createBtn">Créer et Se connecter</button>
       </div>
       <div class="half-width" style="padding-left:10px;">
-        <h3>Rejoindre une partie</h3>
-        <label for="gameIdJoin">ID Partie</label>
-        <input type="text" id="gameIdJoin" placeholder="Entrez l'ID de la partie" />
-        <button id="joinBtn">Rejoindre</button>
+        <h3>Se connecter</h3>
+        <label for="emailLogin">Email</label>
+        <input type="email" id="emailLogin" placeholder="email@example.com" />
+        <label for="passwordLogin">Mot de passe</label>
+        <input type="password" id="passwordLogin" placeholder="Mot de passe" />
+        <button id="loginBtn">Connexion</button>
       </div>
     </div>
 
@@ -179,21 +177,6 @@
   </div>
 
   <script>
-    // --- Firebase Config ---
-    const firebaseConfig = {
-      apiKey: "AIzaSyCwSUJwGsD5BNwuKr8DhhMVYdfMEiLi3Es",
-      authDomain: "bghj-c5fa8.firebaseapp.com",
-      databaseURL: "https://bghj-c5fa8-default-rtdb.firebaseio.com",
-      projectId: "bghj-c5fa8",
-      storageBucket: "bghj-c5fa8.appspot.com",
-      messagingSenderId: "364930076964",
-      appId: "1:364930076964:web:0f4f293ad40de2b680a3b1",
-      measurementId: "G-8PRM7DQZCQ"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.database();
-
     // --- Variables jeu ---
     let nombre1, nombre2;
     let score = 0, bonnes = 0, mauvaises = 0;
@@ -202,20 +185,20 @@
     let tempsRestant = 0;
     let timerInterval = null;
     let partieEnCours = false;
-    let currentGameId = null;
 
     // --- DOM ---
     const loginContainer = document.getElementById('loginContainer');
     const gameContainer = document.getElementById('game');
     const createBtn = document.getElementById('createBtn');
-    const joinBtn = document.getElementById('joinBtn');
+    const loginBtn = document.getElementById('loginBtn');
     const emailCreate = document.getElementById('emailCreate');
     const passwordCreate = document.getElementById('passwordCreate');
-    const gameIdJoin = document.getElementById('gameIdJoin');
+    const emailLogin = document.getElementById('emailLogin');
+    const passwordLogin = document.getElementById('passwordLogin');
     const loginFeedback = document.getElementById('loginFeedback');
     const toggleModeBtn = document.getElementById('toggleModeBtn');
     const verifierBtn = document.getElementById('verifierBtn');
-    const recommencerBtn = document.getElementById('recommencerBtn'); // nouveau
+    const recommencerBtn = document.getElementById('recommencerBtn');
     const userAnswer = document.getElementById('userAnswer');
     const questionText = document.getElementById('question');
     const feedbackText = document.getElementById('feedback');
@@ -230,89 +213,56 @@
 
     // --- Mode sombre / clair ---
     function updateMode() {
-      if(document.body.classList.contains('dark')){
-        document.body.classList.remove('dark');
-      } else {
-        document.body.classList.add('dark');
-      }
+      document.body.classList.toggle('dark');
     }
-    toggleModeBtn.addEventListener('click', () => {
-      updateMode();
-      updateBorder();
-    });
-    function updateBorder(){
-      if(document.body.classList.contains('dark')){
-        gameContainer.style.borderColor = 'red';
-        loginContainer.style.borderColor = 'red';
-      } else {
-        gameContainer.style.borderColor = 'black';
-        loginContainer.style.borderColor = 'black';
-      }
+    toggleModeBtn.addEventListener('click', updateMode);
+
+    // --- Auth simulée avec localStorage ---
+    function saveUser(email, password){
+      localStorage.setItem("user", JSON.stringify({email, password}));
     }
-    updateBorder();
+    function getUser(){
+      return JSON.parse(localStorage.getItem("user"));
+    }
+    function clearUser(){
+      localStorage.removeItem("user");
+    }
 
-    // --- Auth Firebase ---
-    auth.onAuthStateChanged(user => {
-      if(user){
-        loginContainer.style.display = 'none';
-        gameContainer.style.display = 'block';
-        currentGameId = user.uid;
-        resetGame();
-      } else {
-        loginContainer.style.display = 'block';
-        gameContainer.style.display = 'none';
-      }
-    });
+    function showGame(){
+      loginContainer.style.display = 'none';
+      gameContainer.style.display = 'block';
+      resetGame();
+    }
+    function showLogin(){
+      loginContainer.style.display = 'block';
+      gameContainer.style.display = 'none';
+    }
 
-    createBtn.addEventListener('click', async () => {
-      loginFeedback.textContent = '';
+    createBtn.addEventListener('click', () => {
       const email = emailCreate.value.trim();
       const password = passwordCreate.value.trim();
       if(!email || !password){
         loginFeedback.textContent = "Email et mot de passe requis.";
         return;
       }
-      try {
-        await auth.createUserWithEmailAndPassword(email, password);
-        loginFeedback.textContent = '';
-      } catch(e) {
-        if(e.code === 'auth/email-already-in-use'){
-          loginFeedback.textContent = "Email déjà utilisé. Connectez-vous plutôt.";
-          try {
-            await auth.signInWithEmailAndPassword(email, password);
-          } catch(err){
-            loginFeedback.textContent = "Erreur de connexion: "+err.message;
-          }
-        } else {
-          loginFeedback.textContent = e.message;
-        }
-      }
+      saveUser(email, password);
+      showGame();
     });
 
-    joinBtn.addEventListener('click', async () => {
-      loginFeedback.textContent = '';
-      const gameId = gameIdJoin.value.trim();
-      if(!gameId){
-        loginFeedback.textContent = "Entrez l'ID de la partie à rejoindre.";
-        return;
-      }
-      const snapshot = await db.ref('parties/' + gameId).get();
-      if(snapshot.exists()){
-        try {
-          await auth.signInAnonymously();
-          currentGameId = gameId;
-          startGameMulti(gameId);
-        } catch(e) {
-          loginFeedback.textContent = "Erreur de connexion: " + e.message;
-        }
+    loginBtn.addEventListener('click', () => {
+      const email = emailLogin.value.trim();
+      const password = passwordLogin.value.trim();
+      const user = getUser();
+      if(user && user.email === email && user.password === password){
+        showGame();
       } else {
-        loginFeedback.textContent = "Partie introuvable.";
+        loginFeedback.textContent = "Identifiants invalides.";
       }
     });
 
-    logoutBtn.addEventListener('click', async () => {
-      await auth.signOut();
-      location.reload();
+    logoutBtn.addEventListener('click', () => {
+      clearUser();
+      showLogin();
     });
 
     // --- Jeu ---
@@ -404,7 +354,7 @@
     }
 
     verifierBtn.addEventListener('click', verifierReponse);
-    recommencerBtn.addEventListener('click', resetGame); // Bouton Recommencer
+    recommencerBtn.addEventListener('click', resetGame);
     userAnswer.addEventListener('keydown', e => {
       if(e.key === 'Enter'){
         verifierReponse();
@@ -418,16 +368,11 @@
       if(timerInterval) clearInterval(timerInterval);
     }
 
-    async function startGameMulti(gameId){
-      currentGameId = gameId;
-      loginContainer.style.display = 'none';
-      gameContainer.style.display = 'block';
-      resetGame();
-      await db.ref('parties/' + gameId).set({
-        createdBy: auth.currentUser.uid,
-        createdAt: Date.now(),
-        status: "active",
-      });
+    // --- Démarrage ---
+    if(getUser()){
+      showGame();
+    } else {
+      showLogin();
     }
   </script>
 </body>
